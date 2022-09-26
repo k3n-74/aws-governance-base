@@ -1,0 +1,42 @@
+# https://docs.docker.com/compose/compose-file/#version-top-level-element
+# Compose Specificationではversionを頼りにdocker-composeファイルを解釈してはならない。常に、最新のスキーマで解釈する。
+# なので、versionは非推奨。https://github.com/compose-spec/compose-spec/blob/master/spec.md#compose-file
+# version: "3.8"
+services:
+  code:
+    container_name: ${DEV_ENV_NAME:?err}-code
+    build:
+      context: .
+      dockerfile: code.dockerfile
+    volumes:
+      # consistencyはDocker Desktop for Mac 以外では無視される設定
+      # https://matsuand.github.io/docs.docker.jp.onthefly/storage/bind-mounts/#choose-the--v-or---mount-flag
+      - type: bind
+        source: ..
+        target: /workspace
+        consistency: cached
+      # ホストのaws credentialsディレクトリをマウント
+      - type: bind
+        source: ~/.aws
+        target: /home/ika-musume/.aws
+        consistency: cached
+      # ホストのDocker daemonのソケットをBind Mount
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        consistency: cached
+      # コンテナをリビルドした後にvscode extensionsの再インストールを抑止してvscode起動時間を短縮
+      # https://code.visualstudio.com/remote/advancedcontainers/avoid-extension-reinstalls
+      # VS Code
+      - type: volume
+        source: vscode-server-extensions
+        target: /home/ika-musume/.vscode-server/extensions
+        consistency: delegated
+    # command: "/bin/bash"
+    tty: true
+    environment:
+      TZ: Asia/Tokyo
+
+volumes:
+  vscode-server-extensions:
+    name: ${DEV_ENV_NAME:?err}_vscode-server-extensions
