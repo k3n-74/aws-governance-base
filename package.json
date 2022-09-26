@@ -2,7 +2,7 @@
   "name": "aws-governance-base",
   "version": "0.1.0",
   "bin": {
-    "temp": "bin/temp.js"
+    "app": "bin/app.js"
   },
   "scripts": {
     "build": "tsc",
