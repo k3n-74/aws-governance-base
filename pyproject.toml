@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "aws-governance-base"
+version = "0.1.0"
+description = ""
+authors = ["k3n-74"]
+readme = "README.md"
+packages = [{include = "aws_governance_base"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[tool.poetry.group.dev.dependencies]
+cfn-lint = "^0.66.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

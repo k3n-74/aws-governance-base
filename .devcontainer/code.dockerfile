@@ -104,6 +104,40 @@ RUN set -xeu \
     && sudo apt-get clean
 # 2022-09-26 メモ software-properties-common を削除した
 
+############
+## python
+############
+
+# https://github.com/pyenv/pyenv#automatic-installer
+# https://github.com/pyenv/pyenv-installer
+ARG PYENV_GIT_TAG="v2.3.2"
+# pyenvをインストール
+RUN set -xeu \
+    && curl https://pyenv.run | bash \
+    && echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /home/${USERNAME}/.profile \
+    && echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> /home/${USERNAME}/.profile \
+    && echo 'eval "$(pyenv init -)"' >> /home/${USERNAME}/.profile
+# pythonとPoetryをインストール
+ARG DEFAULT_PYTHON_VERSION="3.9.13"
+ARG POETRY_VERSION="1.2.1"
+RUN set -xeu \
+    # pyenv を有効化するためのおまじない
+    && export PYENV_ROOT="/home/${USERNAME}/.pyenv" \
+    && command -v pyenv >/dev/null || export PATH="${PYENV_ROOT}/bin:${PATH}" \
+    && eval "$(pyenv init -)" \
+    # pyenvでpythonをインストールしてデフォルト設定をする
+    && pyenv install ${DEFAULT_PYTHON_VERSION} \
+    && pyenv global ${DEFAULT_PYTHON_VERSION} \
+    # Poetryをインストールする
+    && curl -sSL https://install.python-poetry.org | python3 - --version ${POETRY_VERSION} \
+    # 以下、ここではpoetryコマンドへのパスが通っていない状態なのでpoetryコマンドをフルパスで指定している
+    # 補完を有効化 ← エラーになるからコメントアウト
+    # && /home/${USERNAME}/.local/share/pypoetry/venv/bin/poetry completions bash | sudo tee /etc/bash_completion.d/poetry.bash-completion \
+    # パッケージの並列インストールを無効化
+    && /home/${USERNAME}/.local/share/pypoetry/venv/bin/poetry config installer.parallel false \
+    # 仮想環境が無いときに仮想環境を自動作成する機能を無効化
+    # ( poetryで作成した仮想環境をVS Codeに認識させる手間を省くため )
+    && /home/${USERNAME}/.local/share/pypoetry/venv/bin/poetry config virtualenvs.create false
 
 ############
 ## node.js
