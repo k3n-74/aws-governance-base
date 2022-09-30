@@ -10,6 +10,9 @@ packages = [{include = "aws_governance_base"}]
 python = "^3.9"
 
 
+[tool.poetry.group.dev.dependencies]
+cfn-lint = "^0.66.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
