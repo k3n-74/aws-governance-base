@@ -1,14 +1,16 @@
-# Welcome to your CDK TypeScript project
+# aws-governance-base
 
-This is a blank project for CDK development with TypeScript.
+## 使い方
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+- コンテナのビルドをした後は下記を実行する。
 
-## Useful commands
+  ```shell
+  ika-musume:/workspace$ npm ci
+  ika-musume:/workspace$ poetry install
+  ika-musume:/workspace$ source ~/.profile
+  ```
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `cdk deploy`      deploy this stack to your default AWS account/region
-* `cdk diff`        compare deployed stack with current state
-* `cdk synth`       emits the synthesized CloudFormation template
+- `cfn-lint` のアップデートは下記を実行する。
+  ```shell
+  ika-musume:/workspace$ poetry update cfn-lint
+  ```
