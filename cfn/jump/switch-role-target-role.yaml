@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "switch-role-target-role.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  JumpAwsAccountId:
+    AllowedPattern: "^[0-9]*$"
+    Type: "String"
+    Description: "Jump AWS Account ID"
+
+Conditions:
+  IsJumpAwsAccount: !Equals [ !Ref JumpAwsAccountId, !Ref AWS::AccountId ]
+  IsNotJumpAwsAccount: !Not [ Condition: IsJumpAwsAccount ]
+
+Resources:
+
+  ### 実行権限ありロール
+  ExecutionRole:
+    Type: "AWS::IAM::Role"
+    # Jump AWS Account 以外で作成する
+    Condition: IsNotJumpAwsAccount
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            # https://github.com/aws-cloudformation/cfn-lint/blob/main/docs/rules.md#I3042
+            - "I3042"
+    Properties:
+      Path: "/"
+      RoleName: !Sub "${AppName}---switch-role-target--execution"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+      MaxSessionDuration: 43200
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${JumpAwsAccountId}:root"
+            Action:
+              - "sts:AssumeRole"
+            Condition:
+              Bool:
+                "aws:MultiFactorAuthPresent": true
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
+
+  ### 読み取り権限ロール
+  ReadOnlyRole:
+    Type: "AWS::IAM::Role"
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            # https://github.com/aws-cloudformation/cfn-lint/blob/main/docs/rules.md#I3042
+            - "I3042"
+    Properties:
+      Path: "/"
+      RoleName: !Sub "${AppName}---switch-role-target--read-only"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/ReadOnlyAccess"
+      MaxSessionDuration: 43200
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${JumpAwsAccountId}:root"
+            Action:
+              - "sts:AssumeRole"
+            Condition:
+              Bool:
+                "aws:MultiFactorAuthPresent": true
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"

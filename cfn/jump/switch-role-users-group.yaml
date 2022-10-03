@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "switch-role-users-group.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+Resources:
+
+  ### Swith Role するユーザが属するIAM Group
+  SwitchRoleUsersGroup:
+    Type: "AWS::IAM::Group"
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            # https://github.com/aws-cloudformation/cfn-lint/blob/main/docs/rules.md#I3042
+            - "I3042"
+    Properties:
+      GroupName: !Sub "${AppName}---switch-role-users"
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/IAMSelfManageServiceSpecificCredentials"
+        - "arn:aws:iam::aws:policy/IAMReadOnlyAccess"
+      Policies:
+        # Assume Role することを許可
+        # TODO: MFA必須にしたい
+        - PolicyName: "allow-assume-role"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "sts:AssumeRole"
+                Resource:
+                  - "*"
+                Condition:
+                  StringLike:
+                    "sts:RoleSessionName": "${aws:username}"
+        # 自分のアクセスキー／シークレットキーを管理
+        # TODO: MFA必須にしたい
+        - PolicyName: "manage-own-access-key"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Action:
+                  - "iam:CreateAccessKey"
+                  - "iam:UpdateAccessKey"
+                  - "iam:DeleteAccessKey"
+                  - "iam:CreateVirtualMFADevice"
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/${!aws:username}"
+        # 自分の仮想MFAデバイスを管理
+        - PolicyName: "manage-own-virtual-mfa-device"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "iam:CreateVirtualMFADevice"
+                  - "iam:DeleteVirtualMFADevice"
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:mfa/${!aws:username}"
+              - Effect: "Allow"
+                Action:
+                  - "iam:EnableMFADevice"
+                  - "iam:DeactivateMFADevice"
+                  - "iam:ResyncMFADevice"
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/${!aws:username}"
