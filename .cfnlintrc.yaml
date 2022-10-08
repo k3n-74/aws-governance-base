@@ -1,0 +1,4 @@
+ignore_checks:
+  # https://github.com/aws-cloudformation/cfn-lint/blob/main/docs/rules.md#I3042
+  - I3042
+  

@@ -25,12 +25,6 @@ Resources:
     Type: "AWS::IAM::Role"
     # Jump AWS Account 以外で作成する
     Condition: IsNotJumpAwsAccount
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            # https://github.com/aws-cloudformation/cfn-lint/blob/main/docs/rules.md#I3042
-            - "I3042"
     Properties:
       Path: "/"
       RoleName: !Sub "${AppName}---switch-role-target--execution"
@@ -53,12 +47,6 @@ Resources:
   ### 読み取り権限ロール
   ReadOnlyRole:
     Type: "AWS::IAM::Role"
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            # https://github.com/aws-cloudformation/cfn-lint/blob/main/docs/rules.md#I3042
-            - "I3042"
     Properties:
       Path: "/"
       RoleName: !Sub "${AppName}---switch-role-target--read-only"
