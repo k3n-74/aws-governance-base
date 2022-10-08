@@ -4,8 +4,8 @@
 
 ### 🛸 概要
 
-- AWS Management Console も AWS CLI も MFA を強制する
-- Permissions Boundary Policy を強制する  
+- AWS Management Console も AWS CLI も MFA を強制する。
+- Permissions Boundary Policy を強制する。  
   例えば「cdk bootstrap により作成される CDK Toolkit が内部的に作成する CFn 実行 Role を利用して IAM:User,IAM:Group, Swith Role の権限を越えた操作をする」といったことも不可能。
 - IAM User の操作ログに記録される role session name は必ず IAM User Name と一致する。
 
