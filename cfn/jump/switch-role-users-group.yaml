@@ -14,12 +14,6 @@ Resources:
   ### Swith Role するユーザが属するIAM Group
   SwitchRoleUsersGroup:
     Type: "AWS::IAM::Group"
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            # https://github.com/aws-cloudformation/cfn-lint/blob/main/docs/rules.md#I3042
-            - "I3042"
     Properties:
       GroupName: !Sub "${AppName}---switch-role-users"
       ManagedPolicyArns: 
