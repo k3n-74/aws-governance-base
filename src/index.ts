@@ -57,6 +57,26 @@ const printAllAwsAccountAlias = async (
   }
 };
 
+const setupJump = async() => {
+  // JumpAccount をセットアップ
+  getSsoCredential();
+  setPasswordPolicy();
+  deployStack("xxx");
+  deployStack("yyy");
+  // Audit
+  getSsoCredential();
+  setPasswordPolicy();
+  deployStack("aaa");
+  deployStack("bbb");
+  // Guset
+  for( xxxx ){
+    getSsoCredential();
+    setPasswordPolicy();
+    deployStack("nnn");
+    deployStack("mmm");
+  }
+}
+
 const main = async () => {
   try {
     const args = yargs
@@ -87,6 +107,7 @@ const main = async () => {
     // 全AWSアカウントのエイリアスを出力
     await printAllAwsAccountAlias(PROFILES, BASE_REGION);
     console.log("bye");
+
     // // Jump
     // await setupJump(PROFILES, BASE_REGION, STRUCTURE);
   } catch (e) {
