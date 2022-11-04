@@ -72,14 +72,15 @@ export class Deployer {
         // チェンジセットが空の時はエラーにしない
         // チェンジセットの実行をしないで正常終了
         console.log("empty changeset.");
+        await this.updateTerminationProtection(stackName, true);
         return;
       } else {
         throw e;
       }
     }
-
     await this.executeChangeset(changesetInfo.changesetId, stackName);
     await this.waitForExecute(stackName, changesetInfo.changesetType);
+    await this.updateTerminationProtection(stackName, true);
   };
 
   private createAndWaitForChangeset = async (
@@ -217,7 +218,7 @@ export class Deployer {
       StackName: stackName,
       DisableRollback: false,
     };
-    const ret = this.cfnClient.send(
+    const ret = await this.cfnClient.send(
       new cfn.ExecuteChangeSetCommand(executeChangeSetCommandInput)
     );
   };
@@ -253,5 +254,21 @@ export class Deployer {
       new Error(`Invalid changeset type [${changesetType}].`);
     }
     console.log("waiter[execute changeset]", "done");
+  };
+
+  private updateTerminationProtection = async (
+    stackName: string,
+    enableTerminationProtection: boolean
+  ): Promise<void> => {
+    const updateTerminationProtectionCommandInput: cfn.UpdateTerminationProtectionCommandInput =
+      {
+        StackName: stackName,
+        EnableTerminationProtection: enableTerminationProtection,
+      };
+    const ret = await this.cfnClient.send(
+      new cfn.UpdateTerminationProtectionCommand(
+        updateTerminationProtectionCommandInput
+      )
+    );
   };
 }
