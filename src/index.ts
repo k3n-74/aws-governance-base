@@ -3,32 +3,11 @@ import * as yaml from "js-yaml";
 import { readFileSync } from "fs";
 import { fromSSO } from "@aws-sdk/credential-providers";
 import { IAMClient, ListAccountAliasesCommand } from "@aws-sdk/client-iam";
+import * as cfn from "@aws-sdk/client-cloudformation";
 import { CredentialProvider } from "@aws-sdk/types";
-
-type AwsGovBaseConfig = {
-  General: {
-    BaseRegion: string;
-    Profiles: Record<string, string>;
-  };
-  Structure: {
-    Jump: {
-      id: string;
-    };
-    Audit: {
-      id: string;
-    };
-    Guests: [{ id: string }];
-  };
-};
-
-const getSsoCredential = async (
-  awsAccountId: string,
-  profiles: AwsGovBaseConfig["General"]["Profiles"]
-): Promise<CredentialProvider> => {
-  const profileName = profiles[awsAccountId];
-  if (profileName == null) throw Error("profile name is undefined.");
-  return fromSSO({ profile: profileName });
-};
+import { AwsGovBaseConfig } from "./aws-gov-base-config";
+import { Deployer } from "./deployer";
+import { getSsoCredential } from "./credential-provider";
 
 const getAwsAccountAlias = async (
   credential: CredentialProvider,
@@ -57,25 +36,25 @@ const printAllAwsAccountAlias = async (
   }
 };
 
-const setupJump = async() => {
-  // JumpAccount をセットアップ
-  getSsoCredential();
-  setPasswordPolicy();
-  deployStack("xxx");
-  deployStack("yyy");
-  // Audit
-  getSsoCredential();
-  setPasswordPolicy();
-  deployStack("aaa");
-  deployStack("bbb");
-  // Guset
-  for( xxxx ){
-    getSsoCredential();
-    setPasswordPolicy();
-    deployStack("nnn");
-    deployStack("mmm");
-  }
-}
+// const setupJump = async() => {
+//   // JumpAccount をセットアップ
+//   getSsoCredential();
+//   setPasswordPolicy();
+//   deployStack("xxx");
+//   deployStack("yyy");
+//   // Audit
+//   getSsoCredential();
+//   setPasswordPolicy();
+//   deployStack("aaa");
+//   deployStack("bbb");
+//   // Guset
+//   for( xxxx ){
+//     getSsoCredential();
+//     setPasswordPolicy();
+//     deployStack("nnn");
+//     deployStack("mmm");
+//   }
+// }
 
 const main = async () => {
   try {
@@ -98,18 +77,26 @@ const main = async () => {
     const PROFILES = awsGovBaseConfig.General.Profiles;
     const STRUCTURE = awsGovBaseConfig.Structure;
 
-    console.log(args["config-file"]);
-    console.log(BASE_REGION);
-    console.log(PROFILES);
+    // console.log(args["config-file"]);
+    // console.log(BASE_REGION);
+    // console.log(PROFILES);
 
     // console.log(yaml.dump(config));
 
     // 全AWSアカウントのエイリアスを出力
-    await printAllAwsAccountAlias(PROFILES, BASE_REGION);
-    console.log("bye");
+    // await printAllAwsAccountAlias(PROFILES, BASE_REGION);
+    // console.log("bye");
 
     // // Jump
     // await setupJump(PROFILES, BASE_REGION, STRUCTURE);
+    const dep = await Deployer.createInstance(
+      awsGovBaseConfig.Structure.Guests[0].id,
+      awsGovBaseConfig,
+      awsGovBaseConfig.General.BaseRegion
+    );
+    await dep.deploy("logs", `${__dirname}/../cfn/test/test.yaml`);
+
+    // await dep(awsGovBaseConfig);
   } catch (e) {
     console.error(e);
   }
