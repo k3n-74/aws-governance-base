@@ -89,12 +89,16 @@ const main = async () => {
 
     // // Jump
     // await setupJump(PROFILES, BASE_REGION, STRUCTURE);
-    const dep = await Deployer.createInstance(
-      awsGovBaseConfig.Structure.Guests[0].id,
-      awsGovBaseConfig,
-      awsGovBaseConfig.General.BaseRegion
-    );
-    await dep.deploy("logs", `${__dirname}/../cfn/test/test.yaml`);
+    const dep = await Deployer.createInstance({
+      awsAccountId: awsGovBaseConfig.Structure.Guests[0].id,
+      awsGovBaseConfig: awsGovBaseConfig,
+      region: awsGovBaseConfig.General.BaseRegion,
+    });
+    // await dep.deploy("logs", `${__dirname}/../cfn/test/test.yaml`);
+    await dep.deploy({
+      templateName: "logs",
+      templateFilePath: `${__dirname}/../cfn/test/test.yaml`,
+    });
 
     // await dep(awsGovBaseConfig);
   } catch (e) {

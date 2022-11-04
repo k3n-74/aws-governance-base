@@ -15,10 +15,21 @@ class ChangeEmptyError extends Error {
   }
 }
 
-interface ChangesetInfo {
+type ChangesetInfo = {
   changesetId: string;
   changesetType: string;
-}
+};
+
+type CreateInstanceFuncInput = {
+  awsAccountId: string;
+  awsGovBaseConfig: AwsGovBaseConfig;
+  region: string;
+};
+
+type DeployFuncInput = {
+  templateName: string;
+  templateFilePath: string;
+};
 
 export class Deployer {
   private cfnClient: cfn.CloudFormationClient;
@@ -41,31 +52,31 @@ export class Deployer {
   }
 
   public static createInstance = async (
-    awsAccountId: string,
-    awsGovBaseConfig: AwsGovBaseConfig,
-    region: string
+    createInstanceFuncInput: CreateInstanceFuncInput
   ): Promise<Deployer> => {
     const credential = await getSsoCredential(
-      awsAccountId,
-      awsGovBaseConfig.General.Profiles
+      createInstanceFuncInput.awsAccountId,
+      createInstanceFuncInput.awsGovBaseConfig.General.Profiles
     );
     const cfnClient = new cfn.CloudFormationClient({
       credentials: credential,
-      region: awsGovBaseConfig.General.BaseRegion,
+      region: createInstanceFuncInput.awsGovBaseConfig.General.BaseRegion,
     });
-    return new this(awsAccountId, awsGovBaseConfig, region, cfnClient);
+    return new this(
+      createInstanceFuncInput.awsAccountId,
+      createInstanceFuncInput.awsGovBaseConfig,
+      createInstanceFuncInput.region,
+      cfnClient
+    );
   };
 
-  public deploy = async (
-    templateName: string,
-    templateFilePath: string
-  ): Promise<void> => {
-    const stackName = `${this.awsGovBaseConfig.General.AppName}---${templateName}`;
+  public deploy = async (deployFuncInput: DeployFuncInput): Promise<void> => {
+    const stackName = `${this.awsGovBaseConfig.General.AppName}---${deployFuncInput.templateName}`;
     let changesetInfo: ChangesetInfo;
     try {
       changesetInfo = await this.createAndWaitForChangeset(
         stackName,
-        templateFilePath
+        deployFuncInput.templateFilePath
       );
     } catch (e) {
       if (e instanceof ChangeEmptyError) {
