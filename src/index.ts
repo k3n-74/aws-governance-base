@@ -5,9 +5,9 @@ import { fromSSO } from "@aws-sdk/credential-providers";
 import { IAMClient, ListAccountAliasesCommand } from "@aws-sdk/client-iam";
 import * as cfn from "@aws-sdk/client-cloudformation";
 import { CredentialProvider } from "@aws-sdk/types";
-import { AwsGovBaseConfig } from "./aws-gov-base-config";
-import { Deployer } from "./deployer";
+import { Deployer } from "./aws/cfn/deployer";
 import { getSsoCredential } from "./credential-provider";
+import { Consts as C, AwsGovBaseConfig } from "./consts";
 
 const getAwsAccountAlias = async (
   credential: CredentialProvider,
@@ -30,7 +30,7 @@ const printAllAwsAccountAlias = async (
 ) => {
   // 全AWSアカウントのエイリアスを出力
   for (const awsAccountId of Object.keys(profiles)) {
-    const credential = await getSsoCredential(awsAccountId, profiles);
+    const credential = await getSsoCredential(awsAccountId);
     const accountAliasName = await getAwsAccountAlias(credential, baseRegion);
     console.log(awsAccountId, accountAliasName);
   }
@@ -69,9 +69,13 @@ const main = async () => {
       })
       .parseSync();
 
+    // 設定ファイルを読み込み
     const awsGovBaseConfig = yaml.load(
       readFileSync(args["config-file"], "utf-8")
     ) as AwsGovBaseConfig;
+
+    // 定数クラスを生成
+    C.init({ awsGovBaseConfig: awsGovBaseConfig });
 
     const BASE_REGION = awsGovBaseConfig.General.BaseRegion;
     const PROFILES = awsGovBaseConfig.General.Profiles;
@@ -89,15 +93,32 @@ const main = async () => {
 
     // // Jump
     // await setupJump(PROFILES, BASE_REGION, STRUCTURE);
+
+    const credential = await getSsoCredential(
+      awsGovBaseConfig.Structure.Guests[0].id
+    );
     const dep = await Deployer.createInstance({
-      awsAccountId: awsGovBaseConfig.Structure.Guests[0].id,
-      awsGovBaseConfig: awsGovBaseConfig,
+      credential,
       region: awsGovBaseConfig.General.BaseRegion,
     });
+
+    const parameters: cfn.Parameter[] = [
+      {
+        ParameterKey: "AppName",
+        ParameterValue: awsGovBaseConfig.General.AppName,
+      },
+    ];
+    const tags: cfn.Tag[] = [
+      { Key: "AppName", Value: awsGovBaseConfig.General.AppName },
+    ];
     // await dep.deploy("logs", `${__dirname}/../cfn/test/test.yaml`);
+    const templateName = "logs";
     await dep.deploy({
-      templateName: "logs",
+      stackName: `${awsGovBaseConfig.General.AppName}---${templateName}`,
+      templateName: templateName,
       templateFilePath: `${__dirname}/../cfn/test/test.yaml`,
+      parameters: parameters,
+      tags: tags,
     });
 
     // await dep(awsGovBaseConfig);

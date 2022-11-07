@@ -1,6 +1,5 @@
 import * as cfn from "@aws-sdk/client-cloudformation";
-import { AwsGovBaseConfig } from "./aws-gov-base-config";
-import { getSsoCredential } from "./credential-provider";
+// import { AwsGovBaseConfig } from "../..//aws-gov-base-config";
 import { CredentialProvider } from "@aws-sdk/types";
 import { readFileSync, stat } from "fs";
 import { WaiterConfiguration } from "@aws-sdk/types";
@@ -21,91 +20,108 @@ type ChangesetInfo = {
 };
 
 type CreateInstanceFuncInput = {
-  awsAccountId: string;
-  awsGovBaseConfig: AwsGovBaseConfig;
+  // awsAccountId: string;
+  // awsGovBaseConfig: AwsGovBaseConfig;
   region: string;
+  credential: CredentialProvider;
 };
 
 type DeployFuncInput = {
+  stackName: string;
   templateName: string;
   templateFilePath: string;
+  parameters: cfn.Parameter[];
+  tags: cfn.Tag[];
 };
 
 export class Deployer {
   private cfnClient: cfn.CloudFormationClient;
-  private awsAccountId: string;
-  private awsGovBaseConfig: AwsGovBaseConfig;
-  private region: string;
+  // private awsAccountId: string;
+  // private awsGovBaseConfig: AwsGovBaseConfig;
+  // private region: string;
 
   private readonly CHANGESET_PREFIX = "aws-governance-base-deploy-";
 
-  private constructor(
-    awsAccountId: string,
-    awsGovBaseConfig: AwsGovBaseConfig,
-    region: string,
+  protected constructor(
+    // awsAccountId: string,
+    // awsGovBaseConfig: AwsGovBaseConfig,
+    // region: string,
     cfnClient: cfn.CloudFormationClient
   ) {
-    this.awsAccountId = awsAccountId;
-    this.awsGovBaseConfig = awsGovBaseConfig;
-    this.region = region;
+    // this.awsAccountId = awsAccountId;
+    // this.awsGovBaseConfig = awsGovBaseConfig;
+    // this.region = region;
     this.cfnClient = cfnClient;
   }
 
   public static createInstance = async (
     createInstanceFuncInput: CreateInstanceFuncInput
   ): Promise<Deployer> => {
-    const credential = await getSsoCredential(
-      createInstanceFuncInput.awsAccountId,
-      createInstanceFuncInput.awsGovBaseConfig.General.Profiles
-    );
     const cfnClient = new cfn.CloudFormationClient({
-      credentials: credential,
-      region: createInstanceFuncInput.awsGovBaseConfig.General.BaseRegion,
+      credentials: createInstanceFuncInput.credential,
+      region: createInstanceFuncInput.region,
     });
+
     return new this(
-      createInstanceFuncInput.awsAccountId,
-      createInstanceFuncInput.awsGovBaseConfig,
-      createInstanceFuncInput.region,
+      // createInstanceFuncInput.awsAccountId,
+      // createInstanceFuncInput.awsGovBaseConfig,
+      // createInstanceFuncInput.region,
       cfnClient
     );
   };
 
   public deploy = async (deployFuncInput: DeployFuncInput): Promise<void> => {
-    const stackName = `${this.awsGovBaseConfig.General.AppName}---${deployFuncInput.templateName}`;
     let changesetInfo: ChangesetInfo;
     try {
       changesetInfo = await this.createAndWaitForChangeset(
-        stackName,
-        deployFuncInput.templateFilePath
+        deployFuncInput.stackName,
+        deployFuncInput.templateFilePath,
+        deployFuncInput.parameters,
+        deployFuncInput.tags
       );
     } catch (e) {
       if (e instanceof ChangeEmptyError) {
         // チェンジセットが空の時はエラーにしない
         // チェンジセットの実行をしないで正常終了
         console.log("empty changeset.");
-        await this.updateTerminationProtection(stackName, true);
+        await this.updateTerminationProtection(deployFuncInput.stackName, true);
         return;
       } else {
         throw e;
       }
     }
-    await this.executeChangeset(changesetInfo.changesetId, stackName);
-    await this.waitForExecute(stackName, changesetInfo.changesetType);
-    await this.updateTerminationProtection(stackName, true);
+    await this.executeChangeset(
+      changesetInfo.changesetId,
+      deployFuncInput.stackName
+    );
+    await this.waitForExecute(
+      deployFuncInput.stackName,
+      changesetInfo.changesetType
+    );
+    await this.updateTerminationProtection(deployFuncInput.stackName, true);
   };
 
   private createAndWaitForChangeset = async (
     stackName: string,
-    templateFilePath: string
+    templateFilePath: string,
+    parameters: cfn.Parameter[],
+    tags: cfn.Tag[]
   ): Promise<ChangesetInfo> => {
-    const ret = await this.createChangeset(stackName, templateFilePath);
+    const ret = await this.createChangeset(
+      stackName,
+      templateFilePath,
+      parameters,
+      tags
+    );
     await this.waitForChangeset(ret.changesetId, stackName);
     return ret;
   };
 
   private createChangeset = async (
     stackName: string,
-    templateFilePath: string
+    templateFilePath: string,
+    parameters: cfn.Parameter[],
+    tags: cfn.Tag[]
   ): Promise<ChangesetInfo> => {
     const changesetName = `${this.CHANGESET_PREFIX}${new Date().getTime()}`;
     let changesetType = undefined;
@@ -128,13 +144,8 @@ export class Deployer {
       Description: "Created by aws-governance-base",
       StackName: stackName,
       TemplateBody: templateBody,
-      Parameters: [
-        {
-          ParameterKey: "AppName",
-          ParameterValue: this.awsGovBaseConfig.General.AppName,
-        },
-      ],
-      Tags: [{ Key: "AppName", Value: this.awsGovBaseConfig.General.AppName }],
+      Parameters: parameters,
+      Tags: tags,
     };
     const res = await this.cfnClient.send(
       new cfn.CreateChangeSetCommand(createChangeSetCommandInput)
