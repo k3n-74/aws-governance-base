@@ -3,6 +3,8 @@ import * as cfn from "@aws-sdk/client-cloudformation";
 import { CredentialProvider } from "@aws-sdk/types";
 import { readFileSync, stat } from "fs";
 import { WaiterConfiguration } from "@aws-sdk/types";
+import { print, println } from "../../util";
+import { logger } from "../../logger";
 
 // AWS CLI の deploy コマンドの実装を参考に実装した
 // https://github.com/aws/aws-cli/blob/develop/awscli/customizations/cloudformation/deploy.py
@@ -19,14 +21,14 @@ type ChangesetInfo = {
   changesetType: string;
 };
 
-type CreateInstanceFuncInput = {
+export type CreateInstanceFuncInput = {
   // awsAccountId: string;
   // awsGovBaseConfig: AwsGovBaseConfig;
   region: string;
   credential: CredentialProvider;
 };
 
-type DeployFuncInput = {
+export type DeployFuncInput = {
   stackName: string;
   templateName: string;
   templateFilePath: string;
@@ -34,6 +36,9 @@ type DeployFuncInput = {
   tags: cfn.Tag[];
 };
 
+export type DeployFuncOutput = {
+  deployResult: string;
+};
 export class Deployer {
   private cfnClient: cfn.CloudFormationClient;
   // private awsAccountId: string;
@@ -70,7 +75,9 @@ export class Deployer {
     );
   };
 
-  public deploy = async (deployFuncInput: DeployFuncInput): Promise<void> => {
+  public deploy = async (
+    deployFuncInput: DeployFuncInput
+  ): Promise<DeployFuncOutput> => {
     let changesetInfo: ChangesetInfo;
     try {
       changesetInfo = await this.createAndWaitForChangeset(
@@ -83,9 +90,11 @@ export class Deployer {
       if (e instanceof ChangeEmptyError) {
         // チェンジセットが空の時はエラーにしない
         // チェンジセットの実行をしないで正常終了
-        console.log("empty changeset.");
+        logger.debug("empty changeset.");
         await this.updateTerminationProtection(deployFuncInput.stackName, true);
-        return;
+        return {
+          deployResult: "EMPTY CHANGESET",
+        };
       } else {
         throw e;
       }
@@ -99,6 +108,7 @@ export class Deployer {
       changesetInfo.changesetType
     );
     await this.updateTerminationProtection(deployFuncInput.stackName, true);
+    return { deployResult: changesetInfo.changesetType };
   };
 
   private createAndWaitForChangeset = async (
@@ -126,7 +136,7 @@ export class Deployer {
     const changesetName = `${this.CHANGESET_PREFIX}${new Date().getTime()}`;
     let changesetType = undefined;
     const isHasStack = await this.hasStack(stackName);
-    console.log("isHasStack:", isHasStack);
+    logger.debug("isHasStack:", isHasStack);
 
     if (!isHasStack) {
       changesetType = "CREATE";
@@ -150,7 +160,7 @@ export class Deployer {
     const res = await this.cfnClient.send(
       new cfn.CreateChangeSetCommand(createChangeSetCommandInput)
     );
-    console.log(res);
+    logger.debug(res);
     const changesetId = res.Id;
     if (changesetId === undefined)
       throw new Error("ChangeSet ID is undefined.");
@@ -172,12 +182,12 @@ export class Deployer {
         if (e.message.includes(`Stack with id ${stackName} does not exist`)) {
           return false;
         } else {
-          console.error(e);
-          // console.log(e.message, "\n", e.name, "\n", e.stack);
+          logger.debug(e);
+          // logger.debug(e.message, "\n", e.name, "\n", e.stack);
           throw e;
         }
       } else {
-        console.log(e);
+        logger.debug(e);
         throw e;
       }
     }
@@ -197,20 +207,20 @@ export class Deployer {
       ChangeSetName: changeSetId,
       StackName: stackName,
     };
-    console.log("waitUntilChangeSetCreateComplete", "waiting...");
+    logger.debug("waitUntilChangeSetCreateComplete", "waiting...");
     try {
       await cfn.waitUntilChangeSetCreateComplete(
         waiterConfiguration,
         describeChangeSetCommandInput
       );
-      console.log("waitUntilChangeSetCreateComplete", "done");
+      logger.debug("waitUntilChangeSetCreateComplete", "done");
     } catch (e: any) {
       try {
         const payload = JSON.parse(e.message);
         const status: string = payload.result?.reason?.Status;
         const reason: string = payload.result?.reason?.StatusReason;
 
-        console.log(status, reason);
+        logger.debug(status, reason);
 
         if (status !== undefined && reason !== undefined) {
           if (
@@ -259,15 +269,15 @@ export class Deployer {
       StackName: stackName,
     };
 
-    console.log("waiter[execute changeset]", "waiting...");
+    logger.debug("waiter[execute changeset]", "waiting...");
     if (changesetType == "CREATE") {
-      console.log("stack create complete");
+      logger.debug("stack create complete");
       await cfn.waitUntilStackCreateComplete(
         waiterConfiguration,
         describeStacksCommandInput
       );
     } else if (changesetType == "UPDATE") {
-      console.log("stack update complete");
+      logger.debug("stack update complete");
       await cfn.waitUntilStackUpdateComplete(
         waiterConfiguration,
         describeStacksCommandInput
@@ -275,7 +285,7 @@ export class Deployer {
     } else {
       new Error(`Invalid changeset type [${changesetType}].`);
     }
-    console.log("waiter[execute changeset]", "done");
+    logger.debug("waiter[execute changeset]", "done");
   };
 
   private updateTerminationProtection = async (
