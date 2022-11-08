@@ -1,3 +1,11 @@
+import { Consts as C, AwsGovBaseConfig } from "./consts";
+import { Deployer } from "./aws/cfn/deployer";
+import { CredentialProvider } from "@aws-sdk/types";
+import { getSsoCredential } from "./credential-provider";
+import { logger } from "./logger";
+import { CFNRegistryException } from "@aws-sdk/client-cloudformation";
+import * as cfn from "@aws-sdk/client-cloudformation";
+
 // export const write = (str: string, newLine: boolean = true) => {
 //   if (str === undefined) {
 //     str = "undefined";
@@ -25,4 +33,91 @@ export const println = (str: string) => {
   }
   str = str + "\n";
   process.stdout.write(str);
+};
+
+export const isSetupTargetFeature = (featureName: string): boolean => {
+  print("feature: " + featureName + "  ");
+  if (
+    C.i.commandOptions.feature == undefined ||
+    C.i.commandOptions.feature == featureName
+  ) {
+    println("");
+    return true;
+  } else {
+    println("skip");
+    return false;
+  }
+};
+
+export const isSetupTargetAwsAccount = (awsAccountId: string): boolean => {
+  if (
+    C.i.commandOptions.awsAccountId == undefined ||
+    C.i.commandOptions.awsAccountId == awsAccountId
+  ) {
+    return true;
+  } else {
+    println(awsAccountId + "  skip");
+    return false;
+  }
+};
+
+export const isSetupTargetRegion = (region: string): boolean => {
+  if (
+    C.i.commandOptions.region == undefined ||
+    C.i.commandOptions.region == region
+  ) {
+    return true;
+  } else {
+    print(region + "  skip");
+    return false;
+  }
+};
+
+export type Stack = {
+  templateName: string;
+  templateFilePath: string;
+  parameters?: cfn.Parameter[];
+};
+export type DeployFuncInput = {
+  awsAccountId: string;
+  region: string;
+  stacks: Stack[];
+};
+export const deploy = async (
+  deployFuncInput: DeployFuncInput
+): Promise<void> => {
+  if (
+    isSetupTargetAwsAccount(deployFuncInput.awsAccountId) &&
+    isSetupTargetRegion(deployFuncInput.region)
+  ) {
+    // セットアップ対象のAWSアカウント&リージョンだったらセットアップ
+    println(`${deployFuncInput.awsAccountId}  ${deployFuncInput.region}`);
+    const credential = await getSsoCredential(deployFuncInput.awsAccountId);
+    const dep = await Deployer.createInstance({
+      credential,
+      region: deployFuncInput.region,
+    });
+
+    for (const stack of deployFuncInput.stacks) {
+      const stackName = `${C.i.general.AppName}---${stack.templateName}`;
+      print(stackName + "  ");
+      // stack.parametersが指定されたらデフォルトのparametersと合成する
+      const parameters = stack.parameters
+        ? stack.parameters.concat(C.i.parameters)
+        : C.i.parameters;
+      logger.debug(parameters);
+      const deployResult = await dep.deploy({
+        stackName: stackName,
+        templateName: stack.templateName,
+        templateFilePath: stack.templateFilePath,
+        parameters: parameters,
+        tags: C.i.tags,
+      });
+      println(deployResult.deployResult);
+    }
+  } else {
+    println(
+      `${deployFuncInput.awsAccountId}  ${deployFuncInput.region}  ->  スキップ`
+    );
+  }
 };

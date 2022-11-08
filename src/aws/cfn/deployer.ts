@@ -271,13 +271,13 @@ export class Deployer {
 
     logger.debug("waiter[execute changeset]", "waiting...");
     if (changesetType == "CREATE") {
-      logger.debug("stack create complete");
+      logger.debug("wait for stack create complete");
       await cfn.waitUntilStackCreateComplete(
         waiterConfiguration,
         describeStacksCommandInput
       );
     } else if (changesetType == "UPDATE") {
-      logger.debug("stack update complete");
+      logger.debug("wait for stack update complete");
       await cfn.waitUntilStackUpdateComplete(
         waiterConfiguration,
         describeStacksCommandInput

@@ -7,11 +7,13 @@ import * as cfn from "@aws-sdk/client-cloudformation";
 import { CredentialProvider } from "@aws-sdk/types";
 import { Deployer } from "./aws/cfn/deployer";
 import { getSsoCredential } from "./credential-provider";
-import { Consts as C, AwsGovBaseConfig } from "./consts";
+import { Consts as C, AwsGovBaseConfig, CommandOptions } from "./consts";
 import { exit, stderr } from "process";
 import { Console } from "console";
 import { print, println } from "./util";
 import { logger } from "./logger";
+import { FooFeature } from "./feature/foo";
+import { JumpFeature } from "./feature/jump";
 
 const getAwsAccountAlias = async (
   credential: CredentialProvider,
@@ -40,39 +42,8 @@ const printAllAwsAccountAlias = async (
   }
 };
 
-// const setupJump = async() => {
-//   // JumpAccount をセットアップ
-//   getSsoCredential();
-//   setPasswordPolicy();
-//   deployStack("xxx");
-//   deployStack("yyy");
-//   // Audit
-//   getSsoCredential();
-//   setPasswordPolicy();
-//   deployStack("aaa");
-//   deployStack("bbb");
-//   // Guset
-//   for( xxxx ){
-//     getSsoCredential();
-//     setPasswordPolicy();
-//     deployStack("nnn");
-//     deployStack("mmm");
-//   }
-// }
-
 const main = async () => {
   try {
-    // const args = yargs
-    //   .options({
-    //     "config-file": {
-    //       describe: "config file path",
-    //       alias: "c",
-    //       type: "string",
-    //       require: true,
-    //     },
-    //   })
-    //   .parseSync();
-
     const args = yargs
       .command({
         command: "setup",
@@ -85,17 +56,17 @@ const main = async () => {
             require: true,
           },
           feature: {
-            describe: "セットアップする機能",
+            describe: "この機能だけセットアップする",
             type: "string",
             require: false,
           },
-          "aws-account": {
-            describe: "セットアップするAWSアカウント",
+          "aws-account-id": {
+            describe: "このAWSアカウントだけセットアップする",
             type: "string",
             require: false,
           },
           region: {
-            describe: "セットアップするリージョン",
+            describe: "このリージョンだけセットアップする",
             type: "string",
             require: false,
           },
@@ -122,25 +93,6 @@ const main = async () => {
       // })
       .parseSync();
 
-    // yargs.command("setup", "aaa").options({
-    //   "config-file": {
-    //     describe: "config file path",
-    //     alias: "c",
-    //     type: "string",
-    //     require: true,
-    //   },
-    // });
-    // yargs.command("dest", "aaa").options({
-    //   "config-files": {
-    //     describe: "config file path",
-    //     alias: "c",
-    //     type: "string",
-    //     require: true,
-    //   },
-    // });
-
-    // const args = yargs.parseSync();
-
     logger.debug(args);
 
     if (!(args._.length == 1 && args._[0] == "setup")) {
@@ -152,8 +104,8 @@ const main = async () => {
       ? (args["feature"] as string)
       : undefined;
 
-    const awsAccount: string | undefined = args["aws-account"]
-      ? (args["aws-account"] as string)
+    const awsAccountId: string | undefined = args["aws-account-id"]
+      ? (args["aws-account-id"] as string)
       : undefined;
 
     const region: string | undefined = args["region"]
@@ -179,53 +131,27 @@ const main = async () => {
     // 定数クラスを生成
     C.init({
       awsGovBaseConfig: awsGovBaseConfig,
-      feature: feature,
-      awsAccount: awsAccount,
-      region: region,
+      commandOptions: {
+        feature: feature,
+        awsAccountId: awsAccountId,
+        region: region,
+      },
     });
-
-    const BASE_REGION = awsGovBaseConfig.General.BaseRegion;
-    const PROFILES = awsGovBaseConfig.General.Profiles;
-    const STRUCTURE = awsGovBaseConfig.Structure;
 
     // 全AWSアカウントのエイリアスを出力
     // await printAllAwsAccountAlias(PROFILES, BASE_REGION);
     // logger.debug("bye");
 
-    // // Jump
-    // await setupJump(PROFILES, BASE_REGION, STRUCTURE);
+    // 開発用の feature
+    const fooFeature = new FooFeature();
+    await fooFeature.setup();
 
-    const credential = await getSsoCredential(
-      awsGovBaseConfig.Structure.Guests[0].id
-    );
-    const dep = await Deployer.createInstance({
-      credential,
-      region: awsGovBaseConfig.General.BaseRegion,
-    });
-
-    const parameters: cfn.Parameter[] = [
-      {
-        ParameterKey: "AppName",
-        ParameterValue: awsGovBaseConfig.General.AppName,
-      },
-    ];
-    const tags: cfn.Tag[] = [
-      { Key: "AppName", Value: awsGovBaseConfig.General.AppName },
-    ];
-    // await dep.deploy("logs", `${__dirname}/../cfn/test/test.yaml`);
-    const templateName = "logs";
-    const deployResult = await dep.deploy({
-      stackName: `${awsGovBaseConfig.General.AppName}---${templateName}`,
-      templateName: templateName,
-      templateFilePath: `${__dirname}/../cfn/test/test.yaml`,
-      parameters: parameters,
-      tags: tags,
-    });
-    println(deployResult.deployResult);
-
-    // await dep(awsGovBaseConfig);
+    // Jump
+    const jumpFeature = new JumpFeature();
+    await jumpFeature.setup();
   } catch (e) {
     logger.error(e);
+    println((e as Error).message);
   }
 };
 

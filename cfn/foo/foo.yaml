@@ -1,20 +1,16 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "test.yaml"
+Description: "foo.yaml"
 
 Parameters:
 
   AppName:
     Description: "App name."
     Type: "String"
-    Default: "takehara-test"
 
 Resources:
 
   TestLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "${AppName}-logs"
-      Tags:
-        - Key: "AppName"
-          Value: !Ref AppName
+      LogGroupName: !Sub "${AppName}---foo"

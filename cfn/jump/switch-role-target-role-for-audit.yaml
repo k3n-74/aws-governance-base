@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "switch-role-target-role.yaml"
+Description: "switch-role-target-role-for-audit.yaml"
 
 Parameters:
 
@@ -14,17 +14,11 @@ Parameters:
     Type: "String"
     Description: "Jump AWS Account ID"
 
-Conditions:
-  IsJumpAwsAccount: !Equals [ !Ref JumpAwsAccountId, !Ref AWS::AccountId ]
-  IsNotJumpAwsAccount: !Not [ Condition: IsJumpAwsAccount ]
-
 Resources:
 
   ### 実行権限ありロール
   ExecutionRole:
     Type: "AWS::IAM::Role"
-    # Jump AWS Account 以外で作成する
-    Condition: IsNotJumpAwsAccount
     Properties:
       Path: "/"
       RoleName: !Sub "${AppName}---switch-role-target--execution"

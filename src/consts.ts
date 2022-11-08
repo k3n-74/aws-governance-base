@@ -1,3 +1,11 @@
+import * as cfn from "@aws-sdk/client-cloudformation";
+
+export type CommandOptions = {
+  feature: string | undefined;
+  awsAccountId: string | undefined;
+  region: string | undefined;
+};
+
 export type General = {
   AppName: string;
   BaseRegion: string;
@@ -21,9 +29,7 @@ export type AwsGovBaseConfig = {
 
 export type InitFuncInput = {
   awsGovBaseConfig: AwsGovBaseConfig;
-  feature: string | undefined;
-  awsAccount: string | undefined;
-  region: string | undefined;
+  commandOptions: CommandOptions;
 };
 
 export class Consts {
@@ -31,15 +37,23 @@ export class Consts {
 
   public readonly general: General;
   public readonly structure: Structure;
-  public readonly feature: string | undefined;
-  public readonly awsAccount: string | undefined;
-  public readonly region: string | undefined;
+  public readonly commandOptions: CommandOptions;
+  public readonly parameters: cfn.Parameter[];
+  public readonly tags: cfn.Tag[];
   private constructor(initFuncInput: InitFuncInput) {
     this.general = initFuncInput.awsGovBaseConfig.General;
     this.structure = initFuncInput.awsGovBaseConfig.Structure;
-    this.feature = initFuncInput.feature;
-    this.awsAccount = initFuncInput.awsAccount;
-    this.region = initFuncInput.region;
+    this.commandOptions = initFuncInput.commandOptions;
+
+    this.parameters = [
+      {
+        ParameterKey: "AppName",
+        ParameterValue: initFuncInput.awsGovBaseConfig.General.AppName,
+      },
+    ];
+    this.tags = [
+      { Key: "AppName", Value: initFuncInput.awsGovBaseConfig.General.AppName },
+    ];
   }
   public static get i(): Consts {
     if (!this._i) {
