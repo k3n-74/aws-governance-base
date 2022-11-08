@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "foo.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+
+Resources:
+
+  TestLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "${AppName}---foo"
