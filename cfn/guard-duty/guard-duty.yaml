@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "guard-duty.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+Resources:
+
+  GuardDutyDetector:
+    Type: AWS::GuardDuty::Detector
+    Properties:
+      Enable: True
+      # 検出結果の発行間隔の設定を15分にするのはDetectiveを利用するときの推奨設定だから
+      # https://dev.classmethod.jp/articles/guardduty-all-region-frequency-settings/
+      FindingPublishingFrequency: FIFTEEN_MINUTES

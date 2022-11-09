@@ -5,6 +5,9 @@ import { getSsoCredential } from "./credential-provider";
 import { logger } from "./logger";
 import { CFNRegistryException } from "@aws-sdk/client-cloudformation";
 import * as cfn from "@aws-sdk/client-cloudformation";
+import * as ec2 from "@aws-sdk/client-ec2";
+import { string } from "yargs";
+import { Region } from "@aws-sdk/client-ec2";
 
 // export const write = (str: string, newLine: boolean = true) => {
 //   if (str === undefined) {
@@ -120,4 +123,38 @@ export const deploy = async (
       `${deployFuncInput.awsAccountId}  ${deployFuncInput.region}  ->  スキップ`
     );
   }
+};
+
+export const listAvailableRegions = async (
+  awsAccountId: string
+): Promise<string[]> => {
+  const credential = await getSsoCredential(awsAccountId);
+  const ec2Client = new ec2.EC2Client({
+    credentials: credential,
+    region: C.i.general.BaseRegion,
+  });
+
+  const res = await ec2Client.send(
+    new ec2.DescribeRegionsCommand({
+      AllRegions: true,
+      Filters: [
+        { Name: "opt-in-status", Values: ["opt-in-not-required", "opted-in"] },
+      ],
+    })
+  );
+
+  let availableRegions: string[] = [];
+
+  if (res.Regions !== undefined) {
+    for (const region of res.Regions) {
+      if (region.RegionName !== undefined) {
+        availableRegions.push(region.RegionName);
+      }
+    }
+  } else {
+  }
+
+  logger.debug(awsAccountId);
+  logger.debug(availableRegions);
+  return availableRegions;
 };
