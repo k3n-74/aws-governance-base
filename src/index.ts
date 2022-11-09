@@ -14,6 +14,7 @@ import { print, println } from "./util";
 import { logger } from "./logger";
 import { FooFeature } from "./feature/foo";
 import { JumpFeature } from "./feature/jump";
+import { GuardDutyFeature } from "./feature/guard-duty";
 
 const getAwsAccountAlias = async (
   credential: CredentialProvider,
@@ -149,6 +150,10 @@ const main = async () => {
     // Jump
     const jumpFeature = new JumpFeature();
     await jumpFeature.setup();
+
+    // Guard Duty
+    const guardDuty = new GuardDutyFeature();
+    await guardDuty.setup();
   } catch (e) {
     logger.error(e);
     println((e as Error).message);
