@@ -11,6 +11,7 @@ import {
   DeployFuncInput,
   listAvailableRegions,
 } from "../util";
+import * as throat from "throat";
 import { logger } from "../logger";
 
 export class GuardDutyFeature {
@@ -32,8 +33,10 @@ export class GuardDutyFeature {
     for (const awsAccountId of allAwsAccountIds) {
       // TODO: listAvailableRegions関数の実行要否について、デプロイ対象のAWSアカウント、リージョンなのかを確認する機能を追加する
       const availableRegions = await listAvailableRegions(awsAccountId);
+      // 全リージョン分の引数のリストを作成する
+      const deployFuncInputList: DeployFuncInput[] = [];
       for (const region of availableRegions) {
-        await deploy({
+        deployFuncInputList.push({
           awsAccountId: awsAccountId,
           region: region,
           stacks: [
@@ -44,6 +47,19 @@ export class GuardDutyFeature {
           ],
         });
       }
+      // 最大9並列の範囲内で全リージョンに対して一斉にdeployを実行
+      const res = await Promise.all(
+        deployFuncInputList.map(
+          throat.default(9, (deployFuncInput) => {
+            return deploy(deployFuncInput);
+          })
+        )
+      );
+
+      // const res = await pMap(deployFuncInputList, deploy, {
+      //   concurrency: 9,
+      //   stopOnError: true,
+      // });
     }
   };
 }

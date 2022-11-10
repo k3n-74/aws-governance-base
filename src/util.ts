@@ -94,7 +94,7 @@ export const deploy = async (
     isSetupTargetRegion(deployFuncInput.region)
   ) {
     // セットアップ対象のAWSアカウント&リージョンだったらセットアップ
-    println(`${deployFuncInput.awsAccountId}  ${deployFuncInput.region}`);
+    // println(`${deployFuncInput.awsAccountId}  ${deployFuncInput.region}`);
     const credential = await getSsoCredential(deployFuncInput.awsAccountId);
     const dep = await Deployer.createInstance({
       credential,
@@ -103,7 +103,12 @@ export const deploy = async (
 
     for (const stack of deployFuncInput.stacks) {
       const stackName = `${C.i.general.AppName}---${stack.templateName}`;
-      print(stackName + "  ");
+      const awsAccountIdAndRegionString =
+        `${deployFuncInput.awsAccountId}  ${deployFuncInput.region}`.padEnd(
+          28,
+          " "
+        );
+      println(`${awsAccountIdAndRegionString}  ${stackName}  START DEPLOY`);
       // stack.parametersが指定されたらデフォルトのparametersと合成する
       const parameters = stack.parameters
         ? stack.parameters.concat(C.i.parameters)
@@ -116,7 +121,9 @@ export const deploy = async (
         parameters: parameters,
         tags: C.i.tags,
       });
-      println(deployResult.deployResult);
+      println(
+        `${awsAccountIdAndRegionString}  ${stackName}  ${deployResult.deployResult}`
+      );
     }
   } else {
     println(
