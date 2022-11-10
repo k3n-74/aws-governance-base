@@ -15,6 +15,7 @@ import { logger } from "./logger";
 import { FooFeature } from "./feature/foo";
 import { JumpFeature } from "./feature/jump";
 import { GuardDutyFeature } from "./feature/guard-duty";
+import { AccountPasswordPolicyFeature } from "./feature/account-password-policy";
 
 const getAwsAccountAlias = async (
   credential: CredentialProvider,
@@ -146,6 +147,10 @@ const main = async () => {
     // 開発用の feature
     const fooFeature = new FooFeature();
     await fooFeature.setup();
+
+    // Account Password Policy
+    const accountPasswordPolicy = new AccountPasswordPolicyFeature();
+    await accountPasswordPolicy.setup();
 
     // Jump
     const jumpFeature = new JumpFeature();
