@@ -39,15 +39,15 @@ export const println = (str: string) => {
 };
 
 export const isSetupTargetFeature = (featureName: string): boolean => {
-  print("feature: " + featureName + "  ");
+  const featureWithPad = `feature: ${featureName}`.padEnd(32, " ");
   if (
     C.i.commandOptions.feature == undefined ||
     C.i.commandOptions.feature == featureName
   ) {
-    println("");
+    println(`${featureWithPad}  start deploy`);
     return true;
   } else {
-    println("skip");
+    println(`${featureWithPad}  skip`);
     return false;
   }
 };
@@ -59,7 +59,7 @@ export const isSetupTargetAwsAccount = (awsAccountId: string): boolean => {
   ) {
     return true;
   } else {
-    println(awsAccountId + "  skip");
+    // println(awsAccountId + "  skip");
     return false;
   }
 };
@@ -71,7 +71,7 @@ export const isSetupTargetRegion = (region: string): boolean => {
   ) {
     return true;
   } else {
-    print(region + "  skip");
+    // println(region + "  skip");
     return false;
   }
 };
@@ -86,15 +86,28 @@ export type DeployFuncInput = {
   region: string;
   stacks: Stack[];
 };
+
+export const createAwsAccountIdAndRegionStringWithPad = (args: {
+  awsAccountId: string;
+  region: string;
+}): string => {
+  return `${args.awsAccountId}  ${args.region}`.padEnd(32, " ");
+};
+
 export const deploy = async (
   deployFuncInput: DeployFuncInput
 ): Promise<void> => {
+  const awsAccountIdAndRegionStringWidhPad =
+    createAwsAccountIdAndRegionStringWithPad({
+      awsAccountId: deployFuncInput.awsAccountId,
+      region: deployFuncInput.region,
+    });
   if (
     isSetupTargetAwsAccount(deployFuncInput.awsAccountId) &&
     isSetupTargetRegion(deployFuncInput.region)
   ) {
     // セットアップ対象のAWSアカウント&リージョンだったらセットアップ
-    println(`${deployFuncInput.awsAccountId}  ${deployFuncInput.region}`);
+    // println(`${deployFuncInput.awsAccountId}  ${deployFuncInput.region}`);
     const credential = await getSsoCredential(deployFuncInput.awsAccountId);
     const dep = await Deployer.createInstance({
       credential,
@@ -103,7 +116,9 @@ export const deploy = async (
 
     for (const stack of deployFuncInput.stacks) {
       const stackName = `${C.i.general.AppName}---${stack.templateName}`;
-      print(stackName + "  ");
+      println(
+        `${awsAccountIdAndRegionStringWidhPad}  ${stackName}  START DEPLOY`
+      );
       // stack.parametersが指定されたらデフォルトのparametersと合成する
       const parameters = stack.parameters
         ? stack.parameters.concat(C.i.parameters)
@@ -116,12 +131,12 @@ export const deploy = async (
         parameters: parameters,
         tags: C.i.tags,
       });
-      println(deployResult.deployResult);
+      println(
+        `${awsAccountIdAndRegionStringWidhPad}  ${stackName}  ${deployResult.deployResult}`
+      );
     }
   } else {
-    println(
-      `${deployFuncInput.awsAccountId}  ${deployFuncInput.region}  ->  スキップ`
-    );
+    println(`${awsAccountIdAndRegionStringWidhPad}  ->  スキップ`);
   }
 };
 

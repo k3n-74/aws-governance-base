@@ -14,8 +14,8 @@ import {
 import * as throat from "throat";
 import { logger } from "../logger";
 
-export class GuardDutyFeature {
-  private readonly featureName = "guard-duty";
+export class IamAccessAnalyzerFeature {
+  private readonly featureName = "iam-access-analyzer";
   public constructor() {}
   public setup = async (): Promise<void> => {
     // セットアップ対象外の機能だったら何もしないで終了
@@ -41,8 +41,8 @@ export class GuardDutyFeature {
           region: region,
           stacks: [
             {
-              templateName: "guard-duty",
-              templateFilePath: `${__dirname}/../../cfn/guard-duty/guard-duty.yaml`,
+              templateName: "iam-access-analyzer",
+              templateFilePath: `${__dirname}/../../cfn/iam-access-analyzer/iam-access-analyzer.yaml`,
             },
           ],
         });

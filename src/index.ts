@@ -16,6 +16,7 @@ import { FooFeature } from "./feature/foo";
 import { JumpFeature } from "./feature/jump";
 import { GuardDutyFeature } from "./feature/guard-duty";
 import { AccountPasswordPolicyFeature } from "./feature/account-password-policy";
+import { IamAccessAnalyzerFeature } from "./feature/iam-access-analyzer";
 
 const getAwsAccountAlias = async (
   credential: CredentialProvider,
@@ -159,6 +160,10 @@ const main = async () => {
     // Guard Duty
     const guardDuty = new GuardDutyFeature();
     await guardDuty.setup();
+
+    // IAM Access Analyzer
+    const iamAccessAnalyzer = new IamAccessAnalyzerFeature();
+    await iamAccessAnalyzer.setup();
   } catch (e) {
     logger.error(e);
     println((e as Error).message);
