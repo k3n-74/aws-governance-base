@@ -55,11 +55,6 @@ export class GuardDutyFeature {
           })
         )
       );
-
-      // const res = await pMap(deployFuncInputList, deploy, {
-      //   concurrency: 9,
-      //   stopOnError: true,
-      // });
     }
   };
 }
