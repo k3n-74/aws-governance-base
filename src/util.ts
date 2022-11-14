@@ -112,6 +112,11 @@ export const deploy = async (
     // セットアップ対象のAWSアカウント&リージョンだったらセットアップ
     // println(`${deployFuncInput.awsAccountId}  ${deployFuncInput.region}`);
     const credential = await getSsoCredential(deployFuncInput.awsAccountId);
+    // const cred = await credential();
+    // logger.debug(cred.accessKeyId);
+    // logger.debug(cred.secretAccessKey);
+    // logger.debug(cred.sessionToken);
+    // logger.debug(cred.expiration);
     const dep = await Deployer.createInstance({
       credential,
       region: deployFuncInput.region,
