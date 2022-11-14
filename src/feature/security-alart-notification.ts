@@ -1,6 +1,7 @@
 import { CredentialProvider } from "@aws-sdk/types";
 import { Consts as C, AwsGovBaseConfig } from "../consts";
 import { getSsoCredential } from "../credential-provider";
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import {
   print,
   println,
@@ -11,6 +12,12 @@ import {
   DeployFuncInput,
 } from "../util";
 import { logger } from "../logger";
+
+type RunCommandFuncOutput = {
+  stdOutString: string;
+  stdErrorString: string;
+  childProcessWithoutNullStreams: ChildProcessWithoutNullStreams;
+};
 
 export class SecurityAlartNotificationFeature {
   private readonly featureName = "security-alart-notification";
@@ -30,6 +37,9 @@ export class SecurityAlartNotificationFeature {
     awsAccountIdsExceptAudit.push(C.i.structure.Jump.id);
 
     // Auditアカウントにデプロイ
+    // Lambda関数をビルド
+    await this.buildLambdaFunction();
+
     await deploy({
       awsAccountId: C.i.structure.Audit.id,
       region: C.i.general.BaseRegion,
@@ -81,5 +91,63 @@ export class SecurityAlartNotificationFeature {
         ],
       });
     }
+  };
+
+  private buildLambdaFunction = async (): Promise<void> => {
+    try {
+      const result = await this.runCommand();
+      logger.debug(
+        "docker buildx build : exit code :",
+        result.childProcessWithoutNullStreams.exitCode
+      );
+      logger.debug(result.stdOutString);
+    } catch (e) {
+      logger.error(e);
+    }
+  };
+
+  private runCommand = (): Promise<RunCommandFuncOutput> => {
+    return new Promise((resolve, reject) => {
+      const command = spawn(
+        "docker",
+        ["buildx", "build", "--output temp", "--no-cache", "."],
+        {
+          shell: true,
+          cwd: `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator-func`,
+          // timeoutは5分
+          timeout: 1000 * 60 * 5,
+          stdio: ["pipe", "pipe", "pipe"],
+        }
+      );
+
+      let stdOutString = "";
+      let stdErrorString = "";
+      command.stdout.on("data", function (data) {
+        //TODO バグ：構築中に出力されるテキストを全く取得できない
+        stdOutString += data.toString();
+        println(data.toString());
+      });
+      command.stderr.on("data", function (data) {
+        stdErrorString += data.toString();
+        //TODO printErrorln を作る
+      });
+      command.on("close", function (code) {
+        return resolve({
+          stdOutString: stdOutString,
+          stdErrorString: stdErrorString,
+          childProcessWithoutNullStreams: command,
+        });
+      });
+      command.on("exit", function (code) {
+        return resolve({
+          stdOutString: stdOutString,
+          stdErrorString: stdErrorString,
+          childProcessWithoutNullStreams: command,
+        });
+      });
+      command.on("error", function (err) {
+        return reject(err);
+      });
+    });
   };
 }
