@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "detective.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+Resources:
+
+  DetectiveGraph:
+    Type: AWS::Detective::Graph

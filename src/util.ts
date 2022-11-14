@@ -41,7 +41,10 @@ export const println = (str: string) => {
 export const isSetupTargetFeature = (featureName: string): boolean => {
   const featureWithPad = `feature: ${featureName}`.padEnd(32, " ");
   if (
-    C.i.commandOptions.feature == undefined ||
+    // Detectiveだけは単体セットアップのみ可能にする。
+    // DetectiveはGuardDutyを有効化してから48時間以上経過した後で
+    // セットアップ可能であり、他とセットアップタイミングが異なるため。
+    (C.i.commandOptions.feature == undefined && featureName != "detective") ||
     C.i.commandOptions.feature == featureName
   ) {
     println(`${featureWithPad}  start deploy`);

@@ -43,19 +43,19 @@ export class Deployer {
   private cfnClient: cfn.CloudFormationClient;
   // private awsAccountId: string;
   // private awsGovBaseConfig: AwsGovBaseConfig;
-  // private region: string;
+  private region: string;
 
   private readonly CHANGESET_PREFIX = "aws-governance-base-deploy-";
 
   protected constructor(
     // awsAccountId: string,
     // awsGovBaseConfig: AwsGovBaseConfig,
-    // region: string,
+    region: string,
     cfnClient: cfn.CloudFormationClient
   ) {
     // this.awsAccountId = awsAccountId;
     // this.awsGovBaseConfig = awsGovBaseConfig;
-    // this.region = region;
+    this.region = region;
     this.cfnClient = cfnClient;
   }
 
@@ -66,11 +66,10 @@ export class Deployer {
       credentials: createInstanceFuncInput.credential,
       region: createInstanceFuncInput.region,
     });
-
     return new this(
       // createInstanceFuncInput.awsAccountId,
       // createInstanceFuncInput.awsGovBaseConfig,
-      // createInstanceFuncInput.region,
+      createInstanceFuncInput.region,
       cfnClient
     );
   };
@@ -96,6 +95,7 @@ export class Deployer {
           deployResult: "EMPTY CHANGESET",
         };
       } else {
+        logger.debug(this.region, " : ", e);
         throw e;
       }
     }
