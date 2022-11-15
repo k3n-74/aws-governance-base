@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-bus-source-guardduty-event.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  TargetAwsAccountId:
+    Description: "target aws account id."
+    Type: "String"
+
+Resources: 
+
+  EventBridgeRuleForGuardDuty:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---send-guard-duty-event-to-audit-account"
+      EventBusName: "default"
+      State: "ENABLED"
+      RoleArn: !GetAtt EventBridgeRuleForGuardDutyRole.Arn
+      EventPattern: |
+        {
+          "source": [
+            "aws.guardduty"
+          ],
+          "detail-type": [
+            "GuardDuty Finding"
+          ]
+        }
+      Targets:
+        - Arn: !Sub "arn:aws:events:${AWS::Region}:${TargetAwsAccountId}:event-bus/default"
+          Id: !Sub "${AppName}---guard-duty-event-target"
+
+  EventBridgeRuleForGuardDutyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}---send-guard-duty-event-to-audit-account"
+      Path: !Sub "/${AppName}/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/gov-base---permissions-boundary-for-role"
+
+  # 上のロールのStatementに含めるとエラーになるので外出しのPolicyにした。
+  # https://qiita.com/sot528/items/2263fab0dbb55d6ce032
+  EventBridgeRuleForGuardDutyPolicyWithoutAssumeRole:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AppName}---send-guard-duty-event-to-audit-account-policy-without-assume-role"
+      Roles:
+        - !Ref EventBridgeRuleForGuardDutyRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "events:PutEvents"
+            Resource: 
+              - !Sub "arn:aws:events:${AWS::Region}:${TargetAwsAccountId}:event-bus/default"

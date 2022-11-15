@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-bus-target-guardduty-listener.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+  
+Resources: 
+
+  # EventBridgeからGuardDutyのイベントを拾う
+  EventBridgeRuleForGuardDuty:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---guard-duty"
+      EventBusName: "default"
+      State: "ENABLED"
+      EventPattern: |
+        {
+          "source": [
+            "aws.guardduty"
+          ],
+          "detail-type": [
+            "GuardDuty Finding"
+          ]
+        }
+      Targets:
+        - Arn: !Ref SnsTopicForGuardDutyEventFromEventBridge
+          Id: !Sub "${AppName}---sns-topic-for-guardduty"
+          InputTransformer:
+            InputPathsMap:
+              "Finding_ID" : "$.detail.id"
+              "awsAccountId" : "$.detail.accountId"
+              "region" : "$.region"
+              "detail_region" : "$.detail.region"
+              "title" : "$.detail.title"
+              "severity": "$.detail.severity"
+              "Finding_Type": "$.detail.type"
+              "Finding_description": "$.detail.description"
+            InputTemplate: |
+              {
+                "eventSource" : "GuardDuty",
+                "awsAccountId" : <awsAccountId>,
+                "region" : <detail_region>,
+                "title" : "GuardDuty | <awsAccountId> | <detail_region> | <title>",
+                "text" : "**深刻度** : <severity>\n**検出タイプ** : <Finding_Type>\n**説明** : <Finding_description>\n**リンク** : https://<region>.console.aws.amazon.com/guardduty/home?region=<region>#/findings?search=id%3D<Finding_ID>"
+              }
+
+            # InputTemplate: |
+            #   "<title>"
+            #   "For more details, open the following URL."
+            #   "https://<region>.console.aws.amazon.com/guardduty/home?region=<region>#/findings?search=id%3D<Finding_ID>"
+
+  SnsTopicPolicyForEventBridgePublishToSns:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---eventbridge-publish-to-sns"
+        Statement:
+          - Sid: "eventbridge-publish-to-sns"
+            Effect: Allow
+            Principal: 
+              Service: "events.amazonaws.com"
+            Action: 'sns:Publish'
+            Resource: !Ref SnsTopicForGuardDutyEventFromEventBridge
+      Topics:
+        - !Ref SnsTopicForGuardDutyEventFromEventBridge
+
+  SnsTopicForGuardDutyEventFromEventBridge:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AppName}---guard-duty-event-from-eventbridge"
+
+  SnsSubscriptionForGuardDutyEventFromEventBridge:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref SnsTopicForGuardDutyEventFromEventBridge
+      Endpoint: !GetAtt QueueForGuardDutyEventFromEventBridge.Arn
+      Protocol: "sqs"
+
+  QueuePolicyForSnsPublishToSqs:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref QueueForGuardDutyEventFromEventBridge
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---sns-publish-to-sqs"
+        Statement:
+          - Sid:  "sns-publish-to-sqs"
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - sqs:SendMessage
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub "arn:aws:sns:*:${AWS::AccountId}:*"
+
+  QueueForGuardDutyEventFromEventBridge:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      VisibilityTimeout: 200
+      MessageRetentionPeriod: 1209600
+
+  EventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      # Lambda関数のスタックとの関係を希薄にするために ImportValue で Lambda ARN を参照しない。
+      FunctionName: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}---security-alart-notificator"
+      EventSourceArn: !GetAtt QueueForGuardDutyEventFromEventBridge.Arn
+      BatchSize: 1
+      Enabled: True
