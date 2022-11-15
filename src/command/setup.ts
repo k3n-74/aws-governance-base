@@ -6,6 +6,7 @@ import { AccountPasswordPolicyFeature } from "../feature/account-password-policy
 import { IamAccessAnalyzerFeature } from "../feature/iam-access-analyzer";
 import { SecurityAlartNotificationFeature } from "../feature/security-alart-notification";
 import { DetectiveFeature } from "../feature/detective";
+import { CommonFeature } from "../feature/common";
 import {
   print,
   println,
@@ -23,6 +24,10 @@ export class SetupCommand {
     // 開発用の feature
     const fooFeature = new FooFeature();
     await fooFeature.setup();
+
+    // Account Password Policy
+    const commonFeature = new CommonFeature();
+    await commonFeature.setup();
 
     // Account Password Policy
     const accountPasswordPolicy = new AccountPasswordPolicyFeature();

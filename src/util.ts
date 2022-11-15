@@ -153,7 +153,7 @@ export const deploy = async (
         logger.error(ac.red(`Unknown CHANGE SET TYPE : ${deployType}`));
       }
       println(
-        `${awsAccountIdAndRegionStringWidhPad}  ${stackName}  ${deployResult.deployResult}`
+        `${awsAccountIdAndRegionStringWidhPad}  ${stackName}  ${deployType}`
       );
     }
   } else {
