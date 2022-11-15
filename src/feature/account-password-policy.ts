@@ -54,7 +54,7 @@ export class AccountPasswordPolicyFeature {
 
         logger.debug("iam.UpdateAccountPasswordPolicyCommand: ", res);
       } else {
-        println(`${awsAccountId}  ${C.i.general.BaseRegion}  ->  スキップ`);
+        println(`${awsAccountId}  ${C.i.general.BaseRegion}  ->  SKIP`);
       }
     }
   };
