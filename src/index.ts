@@ -12,13 +12,8 @@ import { exit, stderr } from "process";
 import { Console } from "console";
 import { print, println } from "./util";
 import { logger } from "./logger";
-import { FooFeature } from "./feature/foo";
-import { JumpFeature } from "./feature/jump";
-import { GuardDutyFeature } from "./feature/guard-duty";
-import { AccountPasswordPolicyFeature } from "./feature/account-password-policy";
-import { IamAccessAnalyzerFeature } from "./feature/iam-access-analyzer";
-import { SecurityAlartNotificationFeature } from "./feature/security-alart-notification";
-import { DetectiveFeature } from "./feature/detective";
+import { SetupCommand } from "./command/setup";
+import { BatchPutKmsKeyPolicyCommand } from "./command/batch-put-kms-key-policy";
 
 const getAwsAccountAlias = async (
   credential: CredentialProvider,
@@ -84,25 +79,65 @@ const main = async () => {
         },
         handler: (argv) => {},
       })
-      // .command({
-      //   command: "dest",
-      //   describe: "",
-      //   builder: {
-      //     force: {
-      //       describe: "config file path",
-      //       alias: "c",
-      //       type: "boolean",
-      //     },
-      //   },
-      //   handler: (argv) => {},
-      // })
+      .command({
+        command: "batch-put-kms-key-policy",
+        describe: "",
+        builder: {
+          "config-file": {
+            describe: "config file path",
+            alias: "c",
+            type: "string",
+            require: true,
+          },
+          "key-policy-file": {
+            describe: "kms key policy file path",
+            type: "string",
+            require: true,
+          },
+          "key-alias-name": {
+            describe:
+              "This value must begin with alias/ followed by a name, such as alias/ExampleAlias.",
+            type: "string",
+            require: true,
+          },
+          "aws-account-id": {
+            describe: "このAWSアカウントだけセットアップする",
+            type: "string",
+            require: false,
+          },
+          region: {
+            describe: "このリージョンだけセットアップする",
+            type: "string",
+            require: false,
+          },
+          "dry-run": {
+            describe:
+              "Key Policyのアップデートは実行せず、アップデートをするかどうかを出力する。",
+            type: "boolean",
+            require: false,
+            default: false,
+          },
+          debug: {
+            describe: "デバッグモード",
+            type: "boolean",
+            require: false,
+            default: false,
+          },
+        },
+        handler: (argv) => {},
+      })
       .parseSync();
 
-    logger.debug(args);
-
-    if (!(args._.length == 1 && args._[0] == "setup")) {
-      println("setupコマンドを指定してください");
+    if (!(args._.length == 1)) {
+      println("コマンドを１つ指定してください");
       exit(1);
+    }
+
+    const command: string = args._[0] as string;
+
+    const isDebug: boolean = args["debug"] as boolean;
+    if (isDebug) {
+      logger.level = "DEBUG";
     }
 
     const feature: string | undefined = args["feature"]
@@ -117,12 +152,17 @@ const main = async () => {
       ? (args["region"] as string)
       : undefined;
 
-    const isDebug: boolean = args["debug"] as boolean;
-    if (isDebug) {
-      logger.level = "DEBUG";
-    }
+    const keyPolicyFile: string | undefined = args["key-policy-file"]
+      ? (args["key-policy-file"] as string)
+      : undefined;
 
-    logger.debug("hello");
+    const keyAliasName: string | undefined = args["key-alias-name"]
+      ? (args["key-alias-name"] as string)
+      : undefined;
+
+    const isDryRun: boolean = args["dry-run"] as boolean;
+
+    logger.debug(args);
 
     // exit(0);
 
@@ -140,6 +180,9 @@ const main = async () => {
         feature: feature,
         awsAccountId: awsAccountId,
         region: region,
+        keyPolicyFile: keyPolicyFile,
+        keyAliasName: keyAliasName,
+        isDryRun: isDryRun,
       },
     });
 
@@ -147,34 +190,16 @@ const main = async () => {
     // await printAllAwsAccountAlias(PROFILES, BASE_REGION);
     // logger.debug("bye");
 
-    // 開発用の feature
-    const fooFeature = new FooFeature();
-    await fooFeature.setup();
-
-    // Account Password Policy
-    const accountPasswordPolicy = new AccountPasswordPolicyFeature();
-    await accountPasswordPolicy.setup();
-
-    // Jump
-    const jumpFeature = new JumpFeature();
-    await jumpFeature.setup();
-
-    // Guard Duty
-    const guardDuty = new GuardDutyFeature();
-    await guardDuty.setup();
-
-    // IAM Access Analyzer
-    const iamAccessAnalyzer = new IamAccessAnalyzerFeature();
-    await iamAccessAnalyzer.setup();
-
-    // Security Alart Notification
-    const securityAlartNotificationFeature =
-      new SecurityAlartNotificationFeature();
-    await securityAlartNotificationFeature.setup();
-    // Detective
-    // GuardDutyをデプロイしてから48時間時間後
-    const detective = new DetectiveFeature();
-    await detective.setup();
+    if (command == "setup") {
+      const setupCommand = new SetupCommand();
+      await setupCommand.runCommand();
+    } else if (command == "batch-put-kms-key-policy") {
+      const batchPutKmsKeyPolicyCommand = new BatchPutKmsKeyPolicyCommand();
+      await batchPutKmsKeyPolicyCommand.runCommand();
+    } else {
+      println("不明なコマンドです。");
+      exit(1);
+    }
   } catch (e) {
     logger.error(e);
     println((e as Error).message);

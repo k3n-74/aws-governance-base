@@ -4,6 +4,9 @@ export type CommandOptions = {
   feature: string | undefined;
   awsAccountId: string | undefined;
   region: string | undefined;
+  keyPolicyFile: string | undefined;
+  keyAliasName: string | undefined;
+  isDryRun: boolean;
 };
 
 export type General = {
