@@ -8,6 +8,7 @@ import * as cfn from "@aws-sdk/client-cloudformation";
 import * as ec2 from "@aws-sdk/client-ec2";
 import { string } from "yargs";
 import { Region } from "@aws-sdk/client-ec2";
+import ac from "ansi-colors";
 
 // export const write = (str: string, newLine: boolean = true) => {
 //   if (str === undefined) {
@@ -139,12 +140,24 @@ export const deploy = async (
         parameters: parameters,
         tags: C.i.tags,
       });
+
+      let deployType = "";
+      if (deployResult.deployResult == "EMPTY CHANGESET") {
+        deployType = ac.yellow("EMPTY CHANGESET");
+      } else if (deployResult.deployResult == "CREATE") {
+        deployType = ac.blue("CREATE");
+      } else if (deployResult.deployResult == "UPDATE") {
+        deployType = ac.green("UPDATE");
+      } else {
+        deployType = deployResult.deployResult;
+        logger.error(ac.red(`Unknown CHANGE SET TYPE : ${deployType}`));
+      }
       println(
         `${awsAccountIdAndRegionStringWidhPad}  ${stackName}  ${deployResult.deployResult}`
       );
     }
   } else {
-    println(`${awsAccountIdAndRegionStringWidhPad}  ->  スキップ`);
+    println(`${awsAccountIdAndRegionStringWidhPad}  ->  SKIP`);
   }
 };
 
