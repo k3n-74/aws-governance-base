@@ -7,6 +7,7 @@ import { IamAccessAnalyzerFeature } from "../feature/iam-access-analyzer";
 import { SecurityAlartNotificationFeature } from "../feature/security-alart-notification";
 import { DetectiveFeature } from "../feature/detective";
 import { CommonFeature } from "../feature/common";
+import { DevOpsGuruFeature } from "../feature/devops-guru";
 import {
   print,
   println,
@@ -49,6 +50,11 @@ export class SetupCommand {
     const securityAlartNotificationFeature =
       new SecurityAlartNotificationFeature();
     await securityAlartNotificationFeature.setup();
+
+    // DevOps Guru
+    const devOpsGuruFeature = new DevOpsGuruFeature();
+    await devOpsGuruFeature.setup();
+
     // Detective
     // GuardDutyをデプロイしてから48時間時間後
     const detective = new DetectiveFeature();
