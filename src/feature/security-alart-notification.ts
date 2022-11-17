@@ -135,8 +135,8 @@ export class SecurityAlartNotificationFeature {
         region: C.i.general.BaseRegion,
         stacks: [
           {
-            templateName: "event-bus-source-guardduty-event",
-            templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-source-guardduty-event.yaml`,
+            templateName: "event-bus-source-send-event-to-target-account",
+            templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-source-send-event-to-target-account.yaml`,
             parameters: [
               {
                 ParameterKey: "TargetAwsAccountId",

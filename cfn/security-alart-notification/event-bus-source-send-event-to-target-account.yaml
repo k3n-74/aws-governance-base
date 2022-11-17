@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-bus-source-send-event-to-target-account.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  TargetAwsAccountId:
+    Description: "target aws account id."
+    Type: "String"
+
+Resources: 
+
+  ### ローカルのイベントをターゲットのイベントバスに送信するためのロール
+
+  SendEventToTargetAccountEventBusRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}---send-event-to-target-account-event-bus"
+      Path: !Sub "/${AppName}/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/gov-base---permissions-boundary-for-role"
+
+  # 上のロールのStatementに含めるとエラーになるので外出しのPolicyにした。
+  # https://qiita.com/sot528/items/2263fab0dbb55d6ce032
+  SendEventToTargetAccountEventBusPolicyExceptAssumeRole:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AppName}---send-event-to-target-account-event-bus-policy-except-assume-role"
+      Roles:
+        - !Ref SendEventToTargetAccountEventBusRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "events:PutEvents"
+            Resource: 
+              - !Sub "arn:aws:events:${AWS::Region}:${TargetAwsAccountId}:event-bus/default"
+
+
+  ### ローカルのイベントをターゲットのイベントバスに送信するためのルール
+
+  # GuardDuty
+  SendGuardDutyEventToTargetAccountEventBus:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---send-guard-duty-event-to-target-account-event-bus"
+      EventBusName: "default"
+      State: "ENABLED"
+      RoleArn: !GetAtt SendEventToTargetAccountEventBusRole.Arn
+      EventPattern: |
+        {
+          "source": [
+            "aws.guardduty"
+          ]
+        }
+      Targets:
+        - Arn: !Sub "arn:aws:events:${AWS::Region}:${TargetAwsAccountId}:event-bus/default"
+          Id: !Sub "${AppName}---target-account-event-bus"
+
+  # DevOps Guru
+  SendDevOpsGuruEventToTargetAccountEventBus:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---send-devops-guru-event-to-target-account-event-bus"
+      EventBusName: "default"
+      State: "ENABLED"
+      RoleArn: !GetAtt SendEventToTargetAccountEventBusRole.Arn
+      EventPattern: |
+        {
+          "source": [
+            "aws.devops-guru"
+          ]
+        }
+      Targets:
+        - Arn: !Sub "arn:aws:events:${AWS::Region}:${TargetAwsAccountId}:event-bus/default"
+          Id: !Sub "${AppName}---target-account-event-bus"

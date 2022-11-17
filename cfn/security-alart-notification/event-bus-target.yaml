@@ -14,9 +14,9 @@ Parameters:
     Type: "CommaDelimitedList"
     Default: ""
 
-  
 Resources: 
 
+  ### 他AWSアカウントのイベントルールからイベントを受け取るためのポリシー
   EventBusPolicy:
     Type: AWS::Events::EventBusPolicy
     Properties:
@@ -29,3 +29,70 @@ Resources:
           AWS: !Ref SourceAwsAccountIds
         Action: "events:PutEvents"
         Resource : !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+
+  ### イベントをCloudWatch Logsに出力
+
+  ## Log Group とリソースベースのポリシー
+  EventLogLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/events/${AppName}---event-log"
+      RetentionInDays: 400
+
+  EventBridgeToLogroupPolicy:
+    Type: AWS::Logs::ResourcePolicy
+    Properties:
+      PolicyName: !Sub "${AppName}---eventbridge-to-loggroup-resource-policy" 
+      PolicyDocument: !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "events.amazonaws.com"
+              },
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "${EventLogLogGroup.Arn}"
+            }
+          ]
+        }
+
+  ### ログ出力するためのルール
+
+  # GuardDuty
+  ExportGuardDutyEventsToLogGroup:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---send-guard-duty-event-to-loggroup"
+      EventBusName: "default"
+      State: "ENABLED"
+      EventPattern: |
+        {
+          "source": [
+            "aws.guardduty"
+          ]
+        }
+      Targets:
+        - Arn: !GetAtt EventLogLogGroup.Arn
+          Id: !Sub "${AppName}---log-group"
+
+  # DevOps Guru
+  ExportDevOpsGuruEventsToLogGroup:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---send-devops-guru-event-to-loggroup"
+      EventBusName: "default"
+      State: "ENABLED"
+      EventPattern: |
+        {
+          "source": [
+            "aws.devops-guru"
+          ]
+        }
+      Targets:
+        - Arn: !GetAtt EventLogLogGroup.Arn
+          Id: !Sub "${AppName}---log-group"
