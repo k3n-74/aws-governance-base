@@ -14,6 +14,7 @@ import {
   isSetupTargetRegion,
   deploy,
   DeployFuncInput,
+  Stack,
 } from "../util";
 import { logger } from "../logger";
 import ac from "ansi-colors";
@@ -30,9 +31,12 @@ type RunBuildLambdaFunctionCommand = {
 };
 
 export class SecurityAlartNotificationFeature {
+  // Lambda関数を早くデプロイしたときのフィーチャー名
+  private readonly FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC =
+    "fast-deploy--alart-notificator-func";
   private readonly featureNameList = [
     "security-alart-notification",
-    // "fast-deploy--alart-notificator-func",
+    this.FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC,
   ];
   public constructor() {}
   public setup = async (): Promise<void> => {
@@ -87,32 +91,38 @@ export class SecurityAlartNotificationFeature {
     }
 
     // Auditアカウントにデプロイ
-    await deploy({
-      awsAccountId: C.i.structure.Audit.id,
-      region: C.i.general.BaseRegion,
-      stacks: [
-        {
-          templateName: "security-alart-notificator",
-          templateFilePath: `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator.yaml`,
-          parameters: [
-            {
-              ParameterKey: "SecurityHubTeamsIncomingWebhookUrlDev",
-              ParameterValue: C.i.securityHub.TeamsIncomingWebhookUrl.Dev,
-            },
-            {
-              ParameterKey: "LambdaS3Bucket",
-              ParameterValue: lambdaS3Bucket,
-            },
-            {
-              ParameterKey: "LambdaS3Key",
-              ParameterValue: lambdaS3Key,
-            },
-            {
-              ParameterKey: "LambdaS3ObjectVersion",
-              ParameterValue: lambdaS3ObjectVersion,
-            },
-          ],
-        },
+    // デプロイするスタックのリストを生成する
+    let auditStacks: Stack[] = [
+      {
+        templateName: "security-alart-notificator",
+        templateFilePath: `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator.yaml`,
+        parameters: [
+          {
+            ParameterKey: "SecurityHubTeamsIncomingWebhookUrlDev",
+            ParameterValue: C.i.securityHub.TeamsIncomingWebhookUrl.Dev,
+          },
+          {
+            ParameterKey: "LambdaS3Bucket",
+            ParameterValue: lambdaS3Bucket,
+          },
+          {
+            ParameterKey: "LambdaS3Key",
+            ParameterValue: lambdaS3Key,
+          },
+          {
+            ParameterKey: "LambdaS3ObjectVersion",
+            ParameterValue: lambdaS3ObjectVersion,
+          },
+        ],
+      },
+    ];
+    // もし、--featureオプションでFEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC が
+    // 指定されていなかったら他のスタックもデプロイする。
+    if (
+      this.FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC !=
+      C.i.commandOptions.feature
+    ) {
+      auditStacks = auditStacks.concat([
         {
           templateName: "event-bus-target-guardduty-listener",
           templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-target-guardduty-listener.yaml`,
@@ -127,28 +137,41 @@ export class SecurityAlartNotificationFeature {
             },
           ],
         },
-      ],
+      ]);
+    }
+
+    await deploy({
+      awsAccountId: C.i.structure.Audit.id,
+      region: C.i.general.BaseRegion,
+      stacks: auditStacks,
     });
 
     // Auditアカウント以外にデプロイ
-    for (const awsAccountId of awsAccountIdsExceptAudit) {
-      // Audit
-      await deploy({
-        awsAccountId: awsAccountId,
-        region: C.i.general.BaseRegion,
-        stacks: [
-          {
-            templateName: "event-bus-source-send-event-to-target-account",
-            templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-source-send-event-to-target-account.yaml`,
-            parameters: [
-              {
-                ParameterKey: "TargetAwsAccountId",
-                ParameterValue: C.i.structure.Audit.id,
-              },
-            ],
-          },
-        ],
-      });
+    // もし、--featureオプションでFEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC が
+    // 指定されていなかったらAuditアカウント以外にもデプロイする。
+    if (
+      this.FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC !=
+      C.i.commandOptions.feature
+    ) {
+      for (const awsAccountId of awsAccountIdsExceptAudit) {
+        // Audit
+        await deploy({
+          awsAccountId: awsAccountId,
+          region: C.i.general.BaseRegion,
+          stacks: [
+            {
+              templateName: "event-bus-source-send-event-to-target-account",
+              templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-source-send-event-to-target-account.yaml`,
+              parameters: [
+                {
+                  ParameterKey: "TargetAwsAccountId",
+                  ParameterValue: C.i.structure.Audit.id,
+                },
+              ],
+            },
+          ],
+        });
+      }
     }
   };
 
