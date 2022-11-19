@@ -13,11 +13,11 @@ import {
 import { logger } from "../logger";
 
 export class JumpFeature {
-  private readonly featureName = "jump";
+  private readonly featureNameList = ["jump"];
   public constructor() {}
   public setup = async (): Promise<void> => {
     // セットアップ対象外の機能だったら何もしないで終了
-    if (!isSetupTargetFeature(this.featureName)) return;
+    if (!isSetupTargetFeature(this.featureNameList)) return;
 
     // Jump
     await deploy({

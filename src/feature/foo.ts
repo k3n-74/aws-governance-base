@@ -13,13 +13,16 @@ import {
 import { logger } from "../logger";
 
 export class FooFeature {
-  private readonly featureName = "foo";
+  private readonly featureNameList = ["foo"];
   public constructor() {}
   public setup = async (): Promise<void> => {
     // セットアップ対象外の機能だったら何もしないで終了
-    if (!isSetupTargetFeature(this.featureName)) return;
+    if (!isSetupTargetFeature(this.featureNameList)) return;
     // このスタックだけ特別にfeatureで指定された時だけデプロイ
-    if (C.i.commandOptions.feature != this.featureName) {
+    if (
+      C.i.commandOptions.feature == undefined ||
+      !this.featureNameList.includes(C.i.commandOptions.feature)
+    ) {
       println("feature: foo  skip");
       println(
         "feature: foo は --feature オプションで明示的に指定されたときのみデプロイできます。"

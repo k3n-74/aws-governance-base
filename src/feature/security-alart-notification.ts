@@ -30,11 +30,14 @@ type RunBuildLambdaFunctionCommand = {
 };
 
 export class SecurityAlartNotificationFeature {
-  private readonly featureName = "security-alart-notification";
+  private readonly featureNameList = [
+    "security-alart-notification",
+    // "fast-deploy--alart-notificator-func",
+  ];
   public constructor() {}
   public setup = async (): Promise<void> => {
     // セットアップ対象外の機能だったら何もしないで終了
-    if (!isSetupTargetFeature(this.featureName)) return;
+    if (!isSetupTargetFeature(this.featureNameList)) return;
 
     // Auditアカウント以外のリストを作成する
     // GuestアカウントのリストからAWS Account IDだけのリストを作成する

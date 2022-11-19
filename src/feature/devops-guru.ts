@@ -13,11 +13,11 @@ import {
 import { logger } from "../logger";
 
 export class DevOpsGuruFeature {
-  private readonly featureName = "devops-guru";
+  private readonly featureNameList = ["devops-guru"];
   public constructor() {}
   public setup = async (): Promise<void> => {
     // セットアップ対象外の機能だったら何もしないで終了
-    if (!isSetupTargetFeature(this.featureName)) return;
+    if (!isSetupTargetFeature(this.featureNameList)) return;
 
     // Guest
     for (const awsAccount of C.i.structure.Guests) {

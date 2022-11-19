@@ -13,11 +13,11 @@ import {
 import { logger } from "../logger";
 
 export class CommonFeature {
-  private readonly featureName = "common";
+  private readonly featureNameList = ["common"];
   public constructor() {}
   public setup = async (): Promise<void> => {
     // セットアップ対象外の機能だったら何もしないで終了
-    if (!isSetupTargetFeature(this.featureName)) return;
+    if (!isSetupTargetFeature(this.featureNameList)) return;
 
     // Auditアカウントのベースリージョンにのみデプロイ
     await deploy({
