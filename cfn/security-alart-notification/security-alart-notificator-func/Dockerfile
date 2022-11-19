@@ -19,9 +19,15 @@ RUN set -xeu \
     && apt-get update \
     && apt-get -y install zip ca-certificates
 
+# node package のインストールに対してのみキャッシュが効くように
+# npm ci に必要なものだけコピーして npm ci を実行。  
+COPY ./package.json ./package-lock.json ${WORKDIR_PATH}
+RUN npm ci --omit=dev
+
+# 改めて全ファイルをコピー
 COPY ./ ${WORKDIR_PATH}
-RUN npm ci \
-    && zip -r function.zip .
+
+RUN zip -r function.zip .
 
 ##############################################################
 # ビルドした成果物だけを出力するためのコンテナ

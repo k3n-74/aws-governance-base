@@ -38,10 +38,17 @@ export class SecurityAlartNotificationFeature {
     "security-alart-notification",
     this.FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC,
   ];
+
   public constructor() {}
   public setup = async (): Promise<void> => {
     // セットアップ対象外の機能だったら何もしないで終了
     if (!isSetupTargetFeature(this.featureNameList)) return;
+
+    const isfeatureFastDeployAlartNotificatorFunc =
+      this.FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC ==
+      C.i.commandOptions.feature
+        ? true
+        : false;
 
     // Auditアカウント以外のリストを作成する
     // GuestアカウントのリストからAWS Account IDだけのリストを作成する
@@ -64,7 +71,10 @@ export class SecurityAlartNotificationFeature {
     ) {
       // Auditアカウントにデプロイ
       // Lambda関数をビルド
-      await this.buildLambdaFunction();
+      // 高速デプロイの時はキャッシュを使う
+      await this.buildLambdaFunction({
+        noCache: !isfeatureFastDeployAlartNotificatorFunc,
+      });
 
       // Lambda関数をS3にアップロード
       const lambdaZipFileName = `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator-func/temp/function.zip`;
@@ -118,10 +128,7 @@ export class SecurityAlartNotificationFeature {
     ];
     // もし、--featureオプションでFEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC が
     // 指定されていなかったら他のスタックもデプロイする。
-    if (
-      this.FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC !=
-      C.i.commandOptions.feature
-    ) {
+    if (!isfeatureFastDeployAlartNotificatorFunc) {
       auditStacks = auditStacks.concat([
         {
           templateName: "event-bus-target-guardduty-listener",
@@ -149,10 +156,7 @@ export class SecurityAlartNotificationFeature {
     // Auditアカウント以外にデプロイ
     // もし、--featureオプションでFEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC が
     // 指定されていなかったらAuditアカウント以外にもデプロイする。
-    if (
-      this.FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC !=
-      C.i.commandOptions.feature
-    ) {
+    if (!isfeatureFastDeployAlartNotificatorFunc) {
       for (const awsAccountId of awsAccountIdsExceptAudit) {
         // Audit
         await deploy({
@@ -175,9 +179,13 @@ export class SecurityAlartNotificationFeature {
     }
   };
 
-  private buildLambdaFunction = async (): Promise<void> => {
+  private buildLambdaFunction = async (args: {
+    noCache: boolean;
+  }): Promise<void> => {
     try {
-      const res = await this.runBuildLambdaFunctionCommand();
+      const res = await this.runBuildLambdaFunctionCommand({
+        noCache: args.noCache,
+      });
       logger.debug(`docker buildx build command returns exit_code=${res.code}`);
       if (res.code != 0) {
         logger.error(
@@ -193,53 +201,53 @@ export class SecurityAlartNotificationFeature {
     }
   };
 
-  private runBuildLambdaFunctionCommand =
-    (): Promise<RunBuildLambdaFunctionCommand> => {
-      return new Promise((resolve, reject) => {
-        const command = spawn(
-          "docker",
-          ["buildx", "build", "--output temp", "--no-cache", "."],
-          {
-            shell: true,
-            cwd: `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator-func`,
-            // timeoutは5分
-            timeout: 1000 * 60 * 5,
-            // stdio: ["pipe", "pipe", "pipe"], // ビルド中に何も出力しない
-            stdio: ["pipe", "inherit", "inherit"], // ビルド中の過程を出力する
-          }
-        );
+  private runBuildLambdaFunctionCommand = (args: {
+    noCache: boolean;
+  }): Promise<RunBuildLambdaFunctionCommand> => {
+    return new Promise((resolve, reject) => {
+      const dockerBuildOptions = args.noCache
+        ? ["buildx", "build", "--output temp", "--no-cache", "."]
+        : ["buildx", "build", "--output temp", "."];
+      const command = spawn("docker", dockerBuildOptions, {
+        shell: true,
+        cwd: `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator-func`,
+        // timeoutは5分
+        timeout: 1000 * 60 * 5,
+        // stdio: ["pipe", "pipe", "pipe"], // ビルド中に何も出力しない
+        stdio: ["pipe", "inherit", "inherit"], // ビルド中の過程を出力する
+      });
 
-        // let stdOutString = "";
-        // let stdErrorString = "";
-        // // stdio: ["pipe", "inherit", "inherit"], だと stdout, stderr を取得できるはずが
-        // // 全然取得できない。
-        // command.stdout.on("data", function (data) {
-        //   //TODO バグ：構築中に出力されるテキストを全く取得できない
-        //   stdOutString += data.toString();
-        //   println(data.toString());
-        // });
-        // command.stderr.on("data", function (data) {
-        //   stdErrorString += data.toString();
-        //   //TODO printErrorln を作る
-        // });
-        command.on("close", function (code) {
-          return resolve({
-            // stdOutString: stdOutString,
-            // stdErrorString: stdErrorString,
-            // childProcessWithoutNullStreams: command,
-            code: code,
-          });
-        });
-        command.on("exit", function (code) {
-          return resolve({
-            // stdOutString: stdOutString,
-            // stdErrorString: stdErrorString,
-            code: code,
-          });
-        });
-        command.on("error", function (err) {
-          return reject(err);
+      // let stdOutString = "";
+      // let stdErrorString = "";
+      // // stdio: ["pipe", "inherit", "inherit"], だと stdout, stderr を取得できるはずが
+      // // 全然取得できない。
+      // command.stdout.on("data", function (data) {
+      //   //TODO バグ：構築中に出力されるテキストを全く取得できない
+      //   stdOutString += data.toString();
+      //   println(data.toString());
+      // });
+      // command.stderr.on("data", function (data) {
+      //   stdErrorString += data.toString();
+      //   //TODO printErrorln を作る
+      // });
+      command.on("close", function (code) {
+        return resolve({
+          // stdOutString: stdOutString,
+          // stdErrorString: stdErrorString,
+          // childProcessWithoutNullStreams: command,
+          code: code,
         });
       });
-    };
+      command.on("exit", function (code) {
+        return resolve({
+          // stdOutString: stdOutString,
+          // stdErrorString: stdErrorString,
+          code: code,
+        });
+      });
+      command.on("error", function (err) {
+        return reject(err);
+      });
+    });
+  };
 }
