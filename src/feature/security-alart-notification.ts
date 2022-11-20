@@ -19,7 +19,7 @@ import {
 import { logger } from "../logger";
 import ac from "ansi-colors";
 import * as s3 from "@aws-sdk/client-s3";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import * as lambda from "@aws-sdk/client-lambda";
 import * as fs from "fs";
 
 type RunBuildLambdaFunctionCommand = {
@@ -69,7 +69,6 @@ export class SecurityAlartNotificationFeature {
       isSetupTargetAwsAccount(C.i.structure.Audit.id) &&
       isSetupTargetRegion(C.i.general.BaseRegion)
     ) {
-      // Auditアカウントにデプロイ
       // Lambda関数をビルド
       // 高速デプロイの時はキャッシュを使う
       await this.buildLambdaFunction({
@@ -87,7 +86,7 @@ export class SecurityAlartNotificationFeature {
       });
 
       const putObjectCommandOutput = await s3Client.send(
-        new PutObjectCommand({
+        new s3.PutObjectCommand({
           Bucket: lambdaS3Bucket,
           Key: lambdaS3Key,
           Body: fileStream,
@@ -98,65 +97,76 @@ export class SecurityAlartNotificationFeature {
 
       // function.zip を削除
       fs.unlinkSync(lambdaZipFileName);
+
+      if (isfeatureFastDeployAlartNotificatorFunc) {
+        // Lambda関数のZIPだけを直接デプロイする
+        println("DEPLOY LAMBDA CODE ONLY : START");
+
+        const lambdaClient = new lambda.LambdaClient({
+          credentials: credential,
+          region: C.i.general.BaseRegion,
+        });
+
+        const updateFunctionCodeCommandOutput = await lambdaClient.send(
+          new lambda.UpdateFunctionCodeCommand({
+            FunctionName: `${C.i.general.AppName}---security-alart-notificator`,
+            S3Bucket: lambdaS3Bucket,
+            S3Key: lambdaS3Key,
+          })
+        );
+
+        println("DEPLOY LAMBDA CODE ONLY : DEPLOYED");
+      }
     }
 
-    // Auditアカウントにデプロイ
-    // デプロイするスタックのリストを生成する
-    let auditStacks: Stack[] = [
-      {
-        templateName: "security-alart-notificator",
-        templateFilePath: `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator.yaml`,
-        parameters: [
+    // もし、--featureオプションでFEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC が
+    // 指定されていなかったらスタックのデプロイをする。
+    if (!isfeatureFastDeployAlartNotificatorFunc) {
+      // Auditアカウントにスタックをデプロイ
+      await deploy({
+        awsAccountId: C.i.structure.Audit.id,
+        region: C.i.general.BaseRegion,
+        stacks: [
           {
-            ParameterKey: "SecurityHubTeamsIncomingWebhookUrlDev",
-            ParameterValue: C.i.securityHub.TeamsIncomingWebhookUrl.Dev,
+            templateName: "security-alart-notificator",
+            templateFilePath: `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator.yaml`,
+            parameters: [
+              {
+                ParameterKey: "SecurityHubTeamsIncomingWebhookUrlDev",
+                ParameterValue: C.i.securityHub.TeamsIncomingWebhookUrl.Dev,
+              },
+              {
+                ParameterKey: "LambdaS3Bucket",
+                ParameterValue: lambdaS3Bucket,
+              },
+              {
+                ParameterKey: "LambdaS3Key",
+                ParameterValue: lambdaS3Key,
+              },
+              {
+                ParameterKey: "LambdaS3ObjectVersion",
+                ParameterValue: lambdaS3ObjectVersion,
+              },
+            ],
           },
           {
-            ParameterKey: "LambdaS3Bucket",
-            ParameterValue: lambdaS3Bucket,
+            templateName: "event-bus-target-guardduty-listener",
+            templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-target-guardduty-listener.yaml`,
           },
           {
-            ParameterKey: "LambdaS3Key",
-            ParameterValue: lambdaS3Key,
-          },
-          {
-            ParameterKey: "LambdaS3ObjectVersion",
-            ParameterValue: lambdaS3ObjectVersion,
+            templateName: "event-bus-target",
+            templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-target.yaml`,
+            parameters: [
+              {
+                ParameterKey: "SourceAwsAccountIds",
+                ParameterValue: awsAccountIdsExceptAudit.join(", "),
+              },
+            ],
           },
         ],
-      },
-    ];
-    // もし、--featureオプションでFEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC が
-    // 指定されていなかったら他のスタックもデプロイする。
-    if (!isfeatureFastDeployAlartNotificatorFunc) {
-      auditStacks = auditStacks.concat([
-        {
-          templateName: "event-bus-target-guardduty-listener",
-          templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-target-guardduty-listener.yaml`,
-        },
-        {
-          templateName: "event-bus-target",
-          templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-target.yaml`,
-          parameters: [
-            {
-              ParameterKey: "SourceAwsAccountIds",
-              ParameterValue: awsAccountIdsExceptAudit.join(", "),
-            },
-          ],
-        },
-      ]);
-    }
+      });
 
-    await deploy({
-      awsAccountId: C.i.structure.Audit.id,
-      region: C.i.general.BaseRegion,
-      stacks: auditStacks,
-    });
-
-    // Auditアカウント以外にデプロイ
-    // もし、--featureオプションでFEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC が
-    // 指定されていなかったらAuditアカウント以外にもデプロイする。
-    if (!isfeatureFastDeployAlartNotificatorFunc) {
+      // Auditアカウント以外にスタックをデプロイ
       for (const awsAccountId of awsAccountIdsExceptAudit) {
         // Audit
         await deploy({
