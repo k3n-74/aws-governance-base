@@ -21,9 +21,9 @@ Parameters:
     Description: "Lambda zip"
     Type: "String"
 
-  LambdaS3ObjectVersion:
-    Description: "Lambda zip"
-    Type: "String"
+  # LambdaS3ObjectVersion:
+  #   Description: "Lambda zip"
+  #   Type: "String"
 
 Resources: 
 
@@ -45,7 +45,7 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaS3Bucket
         S3Key: !Ref LambdaS3Key
-        S3ObjectVersion: !Ref LambdaS3ObjectVersion
+        # S3ObjectVersion: !Ref LambdaS3ObjectVersion
 
   SecurityAlartNotificatorFuncLogGroup:
     Type: AWS::Logs::LogGroup
