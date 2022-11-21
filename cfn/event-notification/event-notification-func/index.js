@@ -1,34 +1,58 @@
 // const AWS = require("aws-sdk")
 const axios = require("axios");
-const { rmSync } = require("fs");
 
 exports.handler = async (event, context) => {
+  // オリジナルのイベントデータを取得する
+  let originalEvent;
   try {
-    console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
-    const message = JSON.parse(event.Records[0].body).Message;
-    console.log("message:\n" + message);
-    console.log("message.title:\n" + JSON.parse(message).title);
-    console.log("message.text:\n" + JSON.parse(message).text);
+    console.log("EVENT:");
+    console.log(JSON.stringify(event));
+
+    const snsEvent = JSON.parse(event.Records[0].body);
+    console.log("SNS EVENT:");
+    console.log(snsEvent);
+
+    const snsMessage = snsEvent.Message;
+    originalEvent = JSON.parse(snsMessage);
+    console.log("ORIGINAL EVENT:");
+    console.log(originalEvent);
   } catch (e) {
-    console.log("event is not JSON.:\n" + event);
+    console.log("illegal event format.");
+    console.log(e);
   }
 
   try {
+    // teams に投稿するメッセージを作成する
+    let teamsTitle;
+    let teamsMessage;
+    if (
+      originalEvent.source == "aws.guardduty" &&
+      originalEvent["detail-type"] == "GuardDuty Finding"
+    ) {
+      // GuardDutyの場合
+      const awsAccountId = originalEvent.detail.accountId;
+      const region = originalEvent.detail.region;
+      const title = originalEvent.detail.title;
+      const severity = originalEvent.detail.severity;
+      const findingType = originalEvent.detail.type;
+      const findingDescription = originalEvent.detail.description;
+      const findingId = originalEvent.detail.id;
+      teamsTitle = `GuardDuty | ${awsAccountId} | ${region} | ${title}`;
+      teamsMessage = `**深刻度** : ${severity}  
+      **検出タイプ** : ${findingType}  
+      **説明** : ${findingDescription}  
+      **リンク** : https://${region}.console.aws.amazon.com/guardduty/home?region=${region}#/findings?search=id%3D${findingId}`;
+    }
+
+    // teams に投稿する
     const teamsIncomingWebHookUrl =
       process.env.GOV_BASE__SECURITY_HUB_TEAMS_INCOMING_WEBHOOK_URL_DEV;
-    const message = JSON.parse(event.Records[0].body).Message;
-    console.log("MESSAGE::\n" + message);
-    // const foo = "<br/>- **項目**<br/>あああああああ<br/>- **みだし**<br/>いいいいいいい"
-    const data = JSON.stringify({
-      title: JSON.parse(message).title,
-      text: JSON.parse(message).text.replaceAll("\n", "<br/>"),
-    });
 
     const res = await axios.post(
       teamsIncomingWebHookUrl,
       {
-        title: JSON.parse(message).title,
-        text: JSON.parse(message).text.replaceAll("\n", "<br/>"),
+        title: teamsTitle,
+        text: teamsMessage,
       },
       {
         headers: {

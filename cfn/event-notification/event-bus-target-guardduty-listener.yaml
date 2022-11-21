@@ -30,29 +30,7 @@ Resources:
       Targets:
         - Arn: !Ref SnsTopicForGuardDutyEventFromEventBridge
           Id: !Sub "${AppName}---sns-topic-for-guardduty"
-          InputTransformer:
-            InputPathsMap:
-              "Finding_ID" : "$.detail.id"
-              "awsAccountId" : "$.detail.accountId"
-              "region" : "$.region"
-              "detail_region" : "$.detail.region"
-              "title" : "$.detail.title"
-              "severity": "$.detail.severity"
-              "Finding_Type": "$.detail.type"
-              "Finding_description": "$.detail.description"
-            InputTemplate: |
-              {
-                "eventSource" : "GuardDuty",
-                "awsAccountId" : <awsAccountId>,
-                "region" : <detail_region>,
-                "title" : "GuardDuty | <awsAccountId> | <detail_region> | <title>",
-                "text" : "**深刻度** : <severity>\n**検出タイプ** : <Finding_Type>\n**説明** : <Finding_description>\n**リンク** : https://<region>.console.aws.amazon.com/guardduty/home?region=<region>#/findings?search=id%3D<Finding_ID>"
-              }
 
-            # InputTemplate: |
-            #   "<title>"
-            #   "For more details, open the following URL."
-            #   "https://<region>.console.aws.amazon.com/guardduty/home?region=<region>#/findings?search=id%3D<Finding_ID>"
 
   SnsTopicPolicyForEventBridgePublishToSns:
     Type: AWS::SNS::TopicPolicy
