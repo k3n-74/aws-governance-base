@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "event-bus-source-send-event-to-target-account.yaml"
+Description: "event-bus-source--send-event-to-target-account.yaml"
 
 Parameters:
 

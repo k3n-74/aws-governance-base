@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "security-alart-notificator.yaml"
+Description: "event-notification-func.yaml"
 
 Parameters:
 
@@ -32,7 +32,7 @@ Resources:
     DependsOn:
       - "SecurityAlartNotificatorFuncLogGroup"
     Properties:
-      FunctionName: !Sub "${AppName}---security-alart-notificator"
+      FunctionName: !Sub "${AppName}---event-notification"
       Description: "notify security alart from EventBridge."
       Runtime: nodejs16.x
       Role: !GetAtt SecurityAlartNotificatorFuncRole.Arn
@@ -50,13 +50,13 @@ Resources:
   SecurityAlartNotificatorFuncLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${AppName}---security-alart-notificator"
+      LogGroupName: !Sub "/aws/lambda/${AppName}---event-notification"
       RetentionInDays: 400
 
   SecurityAlartNotificatorFuncRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${AppName}---security-alart-notificator"
+      RoleName: !Sub "${AppName}---event-notification"
       Path: !Sub "/${AppName}/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"

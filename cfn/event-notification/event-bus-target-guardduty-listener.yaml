@@ -112,7 +112,7 @@ Resources:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
       # Lambda関数のスタックとの関係を希薄にするために ImportValue で Lambda ARN を参照しない。
-      FunctionName: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}---security-alart-notificator"
+      FunctionName: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}---event-notification"
       EventSourceArn: !GetAtt QueueForGuardDutyEventFromEventBridge.Arn
       BatchSize: 1
       Enabled: True

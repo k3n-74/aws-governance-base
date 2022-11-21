@@ -22,7 +22,6 @@ import * as s3 from "@aws-sdk/client-s3";
 import * as lambda from "@aws-sdk/client-lambda";
 import * as fs from "fs";
 import * as crypto from "crypto";
-import { S3Client } from "@aws-sdk/client-s3";
 
 type RunBuildLambdaFunctionCommand = {
   // stdOutString: string;
@@ -32,12 +31,12 @@ type RunBuildLambdaFunctionCommand = {
   // childProcessWithoutNullStreams: ChildProcessByStdio;
 };
 
-export class SecurityAlartNotificationFeature {
+export class EventNotificationFeature {
   // Lambda関数を早くデプロイしたときのフィーチャー名
   private readonly FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC =
-    "fast-deploy--alart-notificator-func";
+    "fast-deploy--event-notification-func";
   private readonly featureNameList = [
-    "security-alart-notification",
+    "event-notification",
     this.FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC,
   ];
 
@@ -51,16 +50,6 @@ export class SecurityAlartNotificationFeature {
       C.i.commandOptions.feature
         ? true
         : false;
-
-    // Auditアカウント以外のリストを作成する
-    // GuestアカウントのリストからAWS Account IDだけのリストを作成する
-    const awsAccountIdsExceptAudit: string[] = C.i.structure.Guests.map(
-      (account) => {
-        return account.id;
-      }
-    );
-    // Jumpアカウントを追加する
-    awsAccountIdsExceptAudit.push(C.i.structure.Jump.id);
 
     // Auditアカウント かつ Base Region がデプロイ対象に含まれているときのみ
     // Lambda関数のデプロイ作業をする。
@@ -79,7 +68,7 @@ export class SecurityAlartNotificationFeature {
       });
 
       // Lambda関数をS3にアップロード
-      const lambdaZipFileName = `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator-func/temp/function.zip`;
+      const lambdaZipFileName = `${__dirname}/../../cfn/event-notification/event-notification-func/temp/function.zip`;
       const fileStream = fs.createReadStream(lambdaZipFileName);
 
       const credential = await getSsoCredential(C.i.structure.Audit.id);
@@ -91,7 +80,7 @@ export class SecurityAlartNotificationFeature {
       // Lambda関数のZIPファイルのハッシュ値を取得
       const digest = this.generateSha256({ filePath: lambdaZipFileName });
       // S3 Object のキーを生成
-      lambdaS3Key = `cfn/security-alart-notification/security-alart-notificator-func/func-${digest}.zip`;
+      lambdaS3Key = `cfn/event-notification/event-notification-func/func-${digest}.zip`;
       // S3 Object が存在するかを確認
       const isExistsLambdaZip = await this.isS3ObjectExists({
         s3Client: s3Client,
@@ -132,7 +121,7 @@ export class SecurityAlartNotificationFeature {
 
         const updateFunctionCodeCommandOutput = await lambdaClient.send(
           new lambda.UpdateFunctionCodeCommand({
-            FunctionName: `${C.i.general.AppName}---security-alart-notificator`,
+            FunctionName: `${C.i.general.AppName}---event-notification`,
             S3Bucket: lambdaS3Bucket,
             S3Key: lambdaS3Key,
           })
@@ -151,8 +140,8 @@ export class SecurityAlartNotificationFeature {
         region: C.i.general.BaseRegion,
         stacks: [
           {
-            templateName: "security-alart-notificator",
-            templateFilePath: `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator.yaml`,
+            templateName: "event-notification-func",
+            templateFilePath: `${__dirname}/../../cfn/event-notification/event-notification-func.yaml`,
             parameters: [
               {
                 ParameterKey: "SecurityHubTeamsIncomingWebhookUrlDev",
@@ -174,41 +163,10 @@ export class SecurityAlartNotificationFeature {
           },
           {
             templateName: "event-bus-target-guardduty-listener",
-            templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-target-guardduty-listener.yaml`,
-          },
-          {
-            templateName: "event-bus-target",
-            templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-target.yaml`,
-            parameters: [
-              {
-                ParameterKey: "SourceAwsAccountIds",
-                ParameterValue: awsAccountIdsExceptAudit.join(", "),
-              },
-            ],
+            templateFilePath: `${__dirname}/../../cfn/event-notification/event-bus-target-guardduty-listener.yaml`,
           },
         ],
       });
-
-      // Auditアカウント以外にスタックをデプロイ
-      for (const awsAccountId of awsAccountIdsExceptAudit) {
-        // Audit
-        await deploy({
-          awsAccountId: awsAccountId,
-          region: C.i.general.BaseRegion,
-          stacks: [
-            {
-              templateName: "event-bus-source-send-event-to-target-account",
-              templateFilePath: `${__dirname}/../../cfn/security-alart-notification/event-bus-source-send-event-to-target-account.yaml`,
-              parameters: [
-                {
-                  ParameterKey: "TargetAwsAccountId",
-                  ParameterValue: C.i.structure.Audit.id,
-                },
-              ],
-            },
-          ],
-        });
-      }
     }
   };
 
@@ -243,7 +201,7 @@ export class SecurityAlartNotificationFeature {
         : ["buildx", "build", "--output temp", "."];
       const command = spawn("docker", dockerBuildOptions, {
         shell: true,
-        cwd: `${__dirname}/../../cfn/security-alart-notification/security-alart-notificator-func`,
+        cwd: `${__dirname}/../../cfn/event-notification/event-notification-func`,
         // timeoutは5分
         timeout: 1000 * 60 * 5,
         // stdio: ["pipe", "pipe", "pipe"], // ビルド中に何も出力しない
@@ -295,7 +253,7 @@ export class SecurityAlartNotificationFeature {
   };
 
   private isS3ObjectExists = async (args: {
-    s3Client: S3Client;
+    s3Client: s3.S3Client;
     BucketName: string;
     Key: string;
   }): Promise<boolean> => {
