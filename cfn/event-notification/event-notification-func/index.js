@@ -41,6 +41,8 @@ exports.handler = async (event, context) => {
     ) {
       // Security Hub Findings の場合
 
+      const eventId = originalEvent.id;
+
       for (const element of originalEvent.detail.findings) {
         const teamsIncomingWebHookUrl = findIncomingWebHookUrl(
           element.AwsAccountId,
@@ -65,9 +67,10 @@ exports.handler = async (event, context) => {
           // title, message を組み立てる
           teamsTitle = `GuardDuty | ${awsAccountId} | ${region} | ${title}`;
           teamsMessage = `**Severity** : ${severity}  
-          **Types** : ${types}  
-          **Description** : ${description}  
-          ${sourceUrl}`;
+            **Types** : ${types}  
+            **Description** : ${description}  
+            ${sourceUrl}  
+            **event-id** : ${eventId}`;
         } else {
           // GuardDuty 以外の場合
 
@@ -88,12 +91,37 @@ exports.handler = async (event, context) => {
           // title, message を組み立てる
           teamsTitle = `${productName} | ${awsAccountId} | ${region} | ${title}`;
           teamsMessage = `**Severity** : ${severity}  
-          **Types** : ${types}  
-          **Description** : ${description}  
-          ${sourceUrl}`;
+            **Types** : ${types}  
+            **Description** : ${description}  
+            ${sourceUrl}  
+            **event-id** : ${eventId}`;
         }
         await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
       }
+    } else if (
+      originalEvent.source == "aws.devops-guru" &&
+      originalEvent["detail-type"] == "DevOps Guru New Insight Open"
+    ) {
+      // DevOps Guru の場合
+      const teamsIncomingWebHookUrl = findIncomingWebHookUrl(
+        originalEvent.account,
+        EVENT_NOTIFICATION_TARGET_DEVOPS_GURU
+      );
+
+      const eventId = originalEvent.id;
+
+      const awsAccountId = originalEvent.account;
+      const severity = originalEvent.detail.insightSeverity.toUpperCase();
+      const description = originalEvent.detail.insightDescription;
+      const region = originalEvent.region;
+      const sourceUrl = originalEvent.detail.insightUrl;
+
+      // title, message を組み立てる
+      teamsTitle = `DevOps Guru | ${awsAccountId} | ${region} | ${description}`;
+      teamsMessage = `**Severity** : ${severity}  
+        ${sourceUrl}  
+        **event-id** : ${eventId}`;
+      await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
     }
   } catch (e) {
     console.error(e);
