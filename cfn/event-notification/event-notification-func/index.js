@@ -149,7 +149,9 @@ const findIncomingWebHookUrl = (
       return element.TeamsIncomingWebhookUrl;
     }
   }
-  throw new Error(`Teams Incoming Web Hook URL for ${awsAccountId} not Found.`);
+  throw new Error(
+    `Teams Incoming Web Hook URL for ${awsAccountId} is not Found.`
+  );
 };
 
 const postMessage = async (
