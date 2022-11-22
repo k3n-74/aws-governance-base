@@ -71,6 +71,12 @@ exports.handler = async (event, context) => {
             **Description** : ${description}  
             ${sourceUrl}  
             **event-id** : ${eventId}`;
+
+          // メッセージ送信する。
+          await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+        } else if (element.ProductName == "Security Hub") {
+          // Security Hub のコントロールの通知は多いので何もしない。
+          console.log("PASS : Product name is Security Hub.");
         } else {
           // GuardDuty 以外の場合
 
@@ -95,8 +101,10 @@ exports.handler = async (event, context) => {
             **Description** : ${description}  
             ${sourceUrl}  
             **event-id** : ${eventId}`;
+
+          // メッセージ送信する。
+          await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
         }
-        await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
       }
     } else if (
       originalEvent.source == "aws.devops-guru" &&
@@ -121,6 +129,8 @@ exports.handler = async (event, context) => {
       teamsMessage = `**Severity** : ${severity}  
         ${sourceUrl}  
         **event-id** : ${eventId}`;
+
+      // メッセージ送信する。
       await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
     }
   } catch (e) {
