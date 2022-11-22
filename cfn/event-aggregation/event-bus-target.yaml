@@ -33,16 +33,16 @@ Resources:
   ### イベントをCloudWatch Logsに出力
 
   ## Log Group とリソースベースのポリシー
-  EventLogLogGroup:
+  NotificationEventLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/events/${AppName}---event-log"
+      LogGroupName: !Sub "/aws/events/${AppName}---notification-event-log"
       RetentionInDays: 400
 
-  EventBridgeToLogroupPolicy:
+  EventBridgeToNotificationEventLogGroup:
     Type: AWS::Logs::ResourcePolicy
     Properties:
-      PolicyName: !Sub "${AppName}---eventbridge-to-loggroup-resource-policy" 
+      PolicyName: !Sub "${AppName}---eventbridge-to-notification-event-loggroup" 
       PolicyDocument: !Sub |
         {
           "Version": "2012-10-17",
@@ -56,43 +56,27 @@ Resources:
                 "logs:CreateLogStream",
                 "logs:PutLogEvents"
               ],
-              "Resource": "${EventLogLogGroup.Arn}"
+              "Resource": "${NotificationEventLogGroup.Arn}"
             }
           ]
         }
 
   ### ログ出力するためのルール
+  # "aws.securityhub" で統合されるサービス一覧
+  # https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary
 
-  # GuardDuty
-  ExportGuardDutyEventsToLogGroup:
+  ExportNotificationEventsToLogGroup:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub "${AppName}---send-guard-duty-event-to-loggroup"
+      Name: !Sub "${AppName}---export-notification-event-to-loggroup"
       EventBusName: "default"
       State: "ENABLED"
       EventPattern: |
         {
           "source": [
-            "aws.guardduty"
+            "aws.securityhub","aws.devops-guru"
           ]
         }
       Targets:
-        - Arn: !GetAtt EventLogLogGroup.Arn
-          Id: !Sub "${AppName}---log-group"
-
-  # DevOps Guru
-  ExportDevOpsGuruEventsToLogGroup:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: !Sub "${AppName}---send-devops-guru-event-to-loggroup"
-      EventBusName: "default"
-      State: "ENABLED"
-      EventPattern: |
-        {
-          "source": [
-            "aws.devops-guru"
-          ]
-        }
-      Targets:
-        - Arn: !GetAtt EventLogLogGroup.Arn
+        - Arn: !GetAtt NotificationEventLogGroup.Arn
           Id: !Sub "${AppName}---log-group"

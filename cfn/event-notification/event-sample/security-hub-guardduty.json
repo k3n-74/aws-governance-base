@@ -1,0 +1,153 @@
+{
+  "version": "0",
+  "id": "7e3d4b0d-8eee-efb0-1c53-4bcc117fe143",
+  "detail-type": "Security Hub Findings - Imported",
+  "source": "aws.securityhub",
+  "account": "403363463177",
+  "time": "2022-11-22T12:05:07Z",
+  "region": "ap-northeast-1",
+  "resources": [
+    "arn:aws:securityhub:ap-south-1::product/aws/guardduty/arn:aws:guardduty:ap-south-1:403363463177:detector/bcc22eae0e2c4565f14062830f59f53f/finding/3d3dae7e675c43999c29c6cf388b1d56"
+  ],
+  "detail": {
+    "findings": [
+      {
+        "ProductArn": "arn:aws:securityhub:ap-south-1::product/aws/guardduty",
+        "Types": ["TTPs/UnauthorizedAccess:S3-MaliciousIPCaller.Custom"],
+        "SourceUrl": "https://ap-south-1.console.aws.amazon.com/guardduty/home?region=ap-south-1#/findings?macros=current&fId=3d3dae7e675c43999c29c6cf388b1d56",
+        "Description": "An API was used to access a bucket from an IP address on a custom threat list.",
+        "ProductName": "GuardDuty",
+        "FirstObservedAt": "2022-11-22T12:03:28.000Z",
+        "CreatedAt": "2022-11-22T12:03:28.302Z",
+        "LastObservedAt": "2022-11-22T12:03:28.000Z",
+        "CompanyName": "Amazon",
+        "FindingProviderFields": {
+          "Types": ["TTPs/UnauthorizedAccess:S3-MaliciousIPCaller.Custom"],
+          "Severity": {
+            "Normalized": 75,
+            "Label": "HIGH",
+            "Product": 8
+          }
+        },
+        "ProductFields": {
+          "aws/guardduty/service/action/awsApiCallAction/errorCode": "AccessDenied",
+          "aws/guardduty/service/archived": "false",
+          "aws/guardduty/service/action/awsApiCallAction/remoteIpDetails/organization/asnOrg": "GeneratedFindingASNOrg",
+          "aws/guardduty/service/additionalInfo/value": "{\"unusual\":{\"hoursOfDay\":[1513609200000],\"userNames\":[\"GeneratedFindingUserName\"]},\"sample\":true}",
+          "aws/guardduty/service/additionalInfo/unusual/userNames.0_": "GeneratedFindingUserName",
+          "aws/guardduty/service/action/awsApiCallAction/remoteIpDetails/organization/org": "GeneratedFindingORG",
+          "aws/guardduty/service/action/awsApiCallAction/remoteIpDetails/geoLocation/lat": "0",
+          "aws/guardduty/service/action/awsApiCallAction/remoteIpDetails/country/countryName": "GeneratedFindingCountryName",
+          "aws/guardduty/service/action/awsApiCallAction/serviceName": "GeneratedFindingAPIServiceName",
+          "aws/guardduty/service/serviceName": "guardduty",
+          "aws/guardduty/service/action/awsApiCallAction/remoteIpDetails/geoLocation/lon": "0",
+          "aws/guardduty/service/detectorId": "bcc22eae0e2c4565f14062830f59f53f",
+          "aws/guardduty/service/action/awsApiCallAction/remoteIpDetails/organization/asn": "-1",
+          "aws/guardduty/service/eventFirstSeen": "2022-11-22T12:03:28.000Z",
+          "aws/guardduty/service/eventLastSeen": "2022-11-22T12:03:28.000Z",
+          "aws/guardduty/service/additionalInfo/unusual/hoursOfDay.0_": "1513609200000",
+          "aws/guardduty/service/action/actionType": "AWS_API_CALL",
+          "aws/guardduty/service/resourceRole": "TARGET",
+          "aws/guardduty/service/action/awsApiCallAction/remoteIpDetails/organization/isp": "GeneratedFindingISP",
+          "aws/guardduty/service/count": "1",
+          "aws/guardduty/service/action/awsApiCallAction/remoteIpDetails/ipAddressV4": "198.51.100.0",
+          "aws/guardduty/service/additionalInfo/sample": "true",
+          "aws/guardduty/service/action/awsApiCallAction/callerType": "Remote IP",
+          "aws/guardduty/service/additionalInfo/type": "default",
+          "aws/guardduty/service/action/awsApiCallAction/remoteIpDetails/city/cityName": "GeneratedFindingCityName",
+          "aws/guardduty/service/action/awsApiCallAction/api": "GeneratedFindingAPIName",
+          "aws/guardduty/service/action/awsApiCallAction/affectedResources/AWS::S3::Bucket": "GeneratedFindingS3Bucket",
+          "aws/securityhub/FindingId": "arn:aws:securityhub:ap-south-1::product/aws/guardduty/arn:aws:guardduty:ap-south-1:403363463177:detector/bcc22eae0e2c4565f14062830f59f53f/finding/3d3dae7e675c43999c29c6cf388b1d56",
+          "aws/securityhub/ProductName": "GuardDuty",
+          "aws/securityhub/CompanyName": "Amazon"
+        },
+        "SchemaVersion": "2018-10-08",
+        "GeneratorId": "arn:aws:guardduty:ap-south-1:403363463177:detector/bcc22eae0e2c4565f14062830f59f53f",
+        "Sample": true,
+        "RecordState": "ACTIVE",
+        "Title": "API GeneratedFindingAPIName was invoked from an IP address on a custom threat list.",
+        "Workflow": {
+          "Status": "NEW"
+        },
+        "Severity": {
+          "Normalized": 75,
+          "Label": "HIGH",
+          "Product": 8
+        },
+        "UpdatedAt": "2022-11-22T12:03:28.302Z",
+        "WorkflowState": "NEW",
+        "AwsAccountId": "403363463177",
+        "Region": "ap-south-1",
+        "Id": "arn:aws:guardduty:ap-south-1:403363463177:detector/bcc22eae0e2c4565f14062830f59f53f/finding/3d3dae7e675c43999c29c6cf388b1d56",
+        "Resources": [
+          {
+            "Partition": "aws",
+            "Type": "AwsEc2Instance",
+            "Details": {
+              "AwsEc2Instance": {
+                "Type": "m3.xlarge",
+                "VpcId": "GeneratedFindingVPCId",
+                "ImageId": "ami-99999999",
+                "IpV4Addresses": ["10.0.0.1", "198.51.100.0"],
+                "SubnetId": "GeneratedFindingSubnetId",
+                "LaunchedAt": "2016-08-02T02:05:06.000Z",
+                "IamInstanceProfileArn": "arn:aws:iam::403363463177:example/instance/profile"
+              }
+            },
+            "Region": "ap-south-1",
+            "Id": "arn:aws:ec2:ap-south-1:403363463177:instance/i-99999999",
+            "Tags": {
+              "GeneratedFindingInstaceTag1": "GeneratedFindingInstaceValue1",
+              "GeneratedFindingInstaceTag2": "GeneratedFindingInstaceTagValue2",
+              "GeneratedFindingInstaceTag3": "GeneratedFindingInstaceTagValue3",
+              "GeneratedFindingInstaceTag4": "GeneratedFindingInstaceTagValue4",
+              "GeneratedFindingInstaceTag5": "GeneratedFindingInstaceTagValue5",
+              "GeneratedFindingInstaceTag6": "GeneratedFindingInstaceTagValue6",
+              "GeneratedFindingInstaceTag7": "GeneratedFindingInstaceTagValue7",
+              "GeneratedFindingInstaceTag8": "GeneratedFindingInstaceTagValue8",
+              "GeneratedFindingInstaceTag9": "GeneratedFindingInstaceTagValue9"
+            }
+          },
+          {
+            "Partition": "aws",
+            "Type": "AwsIamAccessKey",
+            "Details": {
+              "AwsIamAccessKey": {
+                "PrincipalId": "GeneratedFindingPrincipalId",
+                "PrincipalName": "GeneratedFindingUserName",
+                "PrincipalType": "IAMUser"
+              }
+            },
+            "Region": "ap-south-1",
+            "Id": "AWS::IAM::AccessKey:GeneratedFindingAccessKeyId"
+          },
+          {
+            "Partition": "aws",
+            "Type": "AwsS3Bucket",
+            "Details": {
+              "AwsS3Bucket": {
+                "OwnerId": "CanonicalId of Owner",
+                "CreatedAt": "2017-12-18T15:58:11.551Z",
+                "ServerSideEncryptionConfiguration": {
+                  "Rules": [
+                    {
+                      "ApplyServerSideEncryptionByDefault": {
+                        "SSEAlgorithm": "SSEAlgorithm",
+                        "KMSMasterKeyID": "arn:aws:kms:region:123456789012:key/key-id"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "Region": "ap-south-1",
+            "Id": "arn:aws:s3:::bucketName",
+            "Tags": {
+              "foo": "bar"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

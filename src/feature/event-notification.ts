@@ -140,8 +140,8 @@ export class EventNotificationFeature {
         region: C.i.general.BaseRegion,
         stacks: [
           {
-            templateName: "event-notification-func",
-            templateFilePath: `${__dirname}/../../cfn/event-notification/event-notification-func.yaml`,
+            templateName: "event-notification",
+            templateFilePath: `${__dirname}/../../cfn/event-notification/event-notification.yaml`,
             parameters: [
               {
                 ParameterKey: "SecurityHubTeamsIncomingWebhookUrlDev",
@@ -155,15 +155,7 @@ export class EventNotificationFeature {
                 ParameterKey: "LambdaS3Key",
                 ParameterValue: lambdaS3Key,
               },
-              // {
-              //   ParameterKey: "LambdaS3ObjectVersion",
-              //   ParameterValue: lambdaS3ObjectVersion,
-              // },
             ],
-          },
-          {
-            templateName: "event-bus-target-guardduty-listener",
-            templateFilePath: `${__dirname}/../../cfn/event-notification/event-bus-target-guardduty-listener.yaml`,
           },
         ],
       });

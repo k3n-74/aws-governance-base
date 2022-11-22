@@ -17,10 +17,10 @@ Resources:
 
   ### ローカルのイベントをターゲットのイベントバスに送信するためのロール
 
-  SendEventToTargetAccountEventBusRole:
+  SendNotificationEventToTargetAccountEventBusRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${AppName}---send-event-to-target-account-event-bus"
+      RoleName: !Sub "${AppName}---send-notification-event-to-target-account-event-bus"
       Path: !Sub "/${AppName}/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -35,12 +35,12 @@ Resources:
 
   # 上のロールのStatementに含めるとエラーになるので外出しのPolicyにした。
   # https://qiita.com/sot528/items/2263fab0dbb55d6ce032
-  SendEventToTargetAccountEventBusPolicyExceptAssumeRole:
+  SendNotificationEventToTargetAccountEventBusPolicyExceptAssumeRole:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub "${AppName}---send-event-to-target-account-event-bus-policy-except-assume-role"
+      PolicyName: !Sub "${AppName}---send-notification-event-to-target-account-event-bus-policy-except-assume-role"
       Roles:
-        - !Ref SendEventToTargetAccountEventBusRole
+        - !Ref SendNotificationEventToTargetAccountEventBusRole
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -52,37 +52,20 @@ Resources:
 
 
   ### ローカルのイベントをターゲットのイベントバスに送信するためのルール
+  # "aws.securityhub" で統合されるサービス一覧
+  # https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary
 
-  # GuardDuty
-  SendGuardDutyEventToTargetAccountEventBus:
+  SendNotificationEventToTargetAccountEventBus:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub "${AppName}---send-guard-duty-event-to-target-account-event-bus"
+      Name: !Sub "${AppName}---send-notification-event-to-target-account-event-bus"
       EventBusName: "default"
       State: "ENABLED"
-      RoleArn: !GetAtt SendEventToTargetAccountEventBusRole.Arn
+      RoleArn: !GetAtt SendNotificationEventToTargetAccountEventBusRole.Arn
       EventPattern: |
         {
           "source": [
-            "aws.guardduty"
-          ]
-        }
-      Targets:
-        - Arn: !Sub "arn:aws:events:${AWS::Region}:${TargetAwsAccountId}:event-bus/default"
-          Id: !Sub "${AppName}---target-account-event-bus"
-
-  # DevOps Guru
-  SendDevOpsGuruEventToTargetAccountEventBus:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: !Sub "${AppName}---send-devops-guru-event-to-target-account-event-bus"
-      EventBusName: "default"
-      State: "ENABLED"
-      RoleArn: !GetAtt SendEventToTargetAccountEventBusRole.Arn
-      EventPattern: |
-        {
-          "source": [
-            "aws.devops-guru"
+            "aws.securityhub","aws.devops-guru"
           ]
         }
       Targets:

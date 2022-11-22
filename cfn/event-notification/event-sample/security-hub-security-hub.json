@@ -1,0 +1,106 @@
+{
+  "version": "0",
+  "id": "4155f25c-fe69-a794-4144-898360df5278",
+  "detail-type": "Security Hub Findings - Imported",
+  "source": "aws.securityhub",
+  "account": "786782452405",
+  "time": "2022-11-22T11:39:48Z",
+  "region": "ap-northeast-1",
+  "resources": [
+    "arn:aws:securityhub:us-east-1::product/aws/securityhub/arn:aws:securityhub:us-east-1:786782452405:subscription/aws-foundational-security-best-practices/v/1.0.0/CloudFormation.1/finding/5ae26385-e5cc-4132-8d00-d77c9ab157bc"
+  ],
+  "detail": {
+    "findings": [
+      {
+        "ProductArn": "arn:aws:securityhub:us-east-1::product/aws/securityhub",
+        "Types": [
+          "Software and Configuration Checks/Industry and Regulatory Standards/AWS-Foundational-Security-Best-Practices"
+        ],
+        "Description": "This control checks whether your CloudFormation stacks are sending event notifications to SNS topic. This control fails if CloudFormation stacks are not sending event notifications to an SNS topic.",
+        "Compliance": {
+          "Status": "FAILED"
+        },
+        "ProductName": "Security Hub",
+        "FirstObservedAt": "2022-11-10T12:01:37.618Z",
+        "CreatedAt": "2022-11-10T12:01:37.618Z",
+        "LastObservedAt": "2022-11-22T11:39:41.495Z",
+        "CompanyName": "AWS",
+        "FindingProviderFields": {
+          "Types": [
+            "Software and Configuration Checks/Industry and Regulatory Standards/AWS-Foundational-Security-Best-Practices"
+          ],
+          "Severity": {
+            "Normalized": 1,
+            "Label": "LOW",
+            "Product": 1,
+            "Original": "LOW"
+          }
+        },
+        "ProductFields": {
+          "StandardsArn": "arn:aws:securityhub:::standards/aws-foundational-security-best-practices/v/1.0.0",
+          "StandardsSubscriptionArn": "arn:aws:securityhub:us-east-1:786782452405:subscription/aws-foundational-security-best-practices/v/1.0.0",
+          "ControlId": "CloudFormation.1",
+          "RecommendationUrl": "https://docs.aws.amazon.com/console/securityhub/CloudFormation.1/remediation",
+          "RelatedAWSResources:0/name": "securityhub-cloudformation-stack-notification-check-56dc4397",
+          "RelatedAWSResources:0/type": "AWS::Config::ConfigRule",
+          "StandardsControlArn": "arn:aws:securityhub:us-east-1:786782452405:control/aws-foundational-security-best-practices/v/1.0.0/CloudFormation.1",
+          "aws/securityhub/ProductName": "Security Hub",
+          "aws/securityhub/CompanyName": "AWS",
+          "Resources:0/Id": "arn:aws:cloudformation:us-east-1:786782452405:stack/gov-base---iam-access-analyzer/3d516c70-60ef-11ed-95b1-12cbb9c98fc1",
+          "aws/securityhub/FindingId": "arn:aws:securityhub:us-east-1::product/aws/securityhub/arn:aws:securityhub:us-east-1:786782452405:subscription/aws-foundational-security-best-practices/v/1.0.0/CloudFormation.1/finding/5ae26385-e5cc-4132-8d00-d77c9ab157bc"
+        },
+        "Remediation": {
+          "Recommendation": {
+            "Text": "For directions on how to fix this issue, consult the AWS Security Hub Foundational Security Best Practices documentation.",
+            "Url": "https://docs.aws.amazon.com/console/securityhub/CloudFormation.1/remediation"
+          }
+        },
+        "SchemaVersion": "2018-10-08",
+        "GeneratorId": "aws-foundational-security-best-practices/v/1.0.0/CloudFormation.1",
+        "RecordState": "ACTIVE",
+        "Title": "CloudFormation.1 CloudFormation stacks should be integrated with Simple Notification Service (SNS)",
+        "Workflow": {
+          "Status": "NOTIFIED"
+        },
+        "Severity": {
+          "Normalized": 1,
+          "Label": "LOW",
+          "Product": 1,
+          "Original": "LOW"
+        },
+        "UpdatedAt": "2022-11-22T11:39:34.825Z",
+        "WorkflowState": "NEW",
+        "AwsAccountId": "786782452405",
+        "Region": "us-east-1",
+        "Id": "arn:aws:securityhub:us-east-1:786782452405:subscription/aws-foundational-security-best-practices/v/1.0.0/CloudFormation.1/finding/5ae26385-e5cc-4132-8d00-d77c9ab157bc",
+        "Resources": [
+          {
+            "Partition": "aws",
+            "Type": "AwsCloudFormationStack",
+            "Details": {
+              "AwsCloudFormationStack": {
+                "Description": "iam-access-analyzer.yaml",
+                "StackStatus": "CREATE_COMPLETE",
+                "CreationTime": "2022-11-10T12:00:16.000Z",
+                "EnableTerminationProtection": true,
+                "DriftInformation": {
+                  "StackDriftStatus": "NOT_CHECKED"
+                },
+                "StackName": "gov-base---iam-access-analyzer",
+                "DisableRollback": false,
+                "StackId": "arn:aws:cloudformation:us-east-1:786782452405:stack/gov-base---iam-access-analyzer/3d516c70-60ef-11ed-95b1-12cbb9c98fc1"
+              }
+            },
+            "Region": "us-east-1",
+            "Id": "arn:aws:cloudformation:us-east-1:786782452405:stack/gov-base---iam-access-analyzer/3d516c70-60ef-11ed-95b1-12cbb9c98fc1"
+          }
+        ],
+        "Note": {
+          "UpdatedBy": "confirmation-notification",
+          "Text": "2022-11-10 12:01:54 NEW->NOTIFIED\n2022-11-16 00:00:26 FIRST_CHECKED",
+          "UpdatedAt": "2022-11-16T00:00:26.898Z"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,155 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-notification.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  SecurityHubTeamsIncomingWebhookUrlDev:
+    Description: ""
+    Type: "String"
+
+  LambdaS3Bucket:
+    Description: "Lambda zip"
+    Type: "String"
+
+  LambdaS3Key:
+    Description: "Lambda zip"
+    Type: "String"
+
+
+Resources: 
+
+  ################################
+  # EventBridge -> SNS -> Queue
+  ################################
+
+  # EventBridgeから通知イベントを拾う
+  SubscribeEventNotification:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---subscribe-event-notification"
+      EventBusName: "default"
+      State: "ENABLED"
+      EventPattern: |
+        {
+          "source": [
+            "aws.securityhub","aws.devops-guru"
+          ]
+        }
+      Targets:
+        - Arn: !Ref EventNotificationTopic
+          Id: !Sub "${AppName}---sns-topic-for-guardduty"
+
+  EventNotificationTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---event-notification"
+        Statement:
+          - Sid: "eventbridge-to-sns"
+            Effect: Allow
+            Principal: 
+              Service: "events.amazonaws.com"
+            Action: 'sns:Publish'
+            Resource: !Ref EventNotificationTopic
+      Topics:
+        - !Ref EventNotificationTopic
+
+  EventNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AppName}---event-notification"
+
+  EventNotificationSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref EventNotificationTopic
+      Endpoint: !GetAtt EventNotificationQueue.Arn
+      Protocol: "sqs"
+
+  EventNotificationQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref EventNotificationQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---sns-publish-to-sqs"
+        Statement:
+          - Sid:  "sns-publish-to-sqs"
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - sqs:SendMessage
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub "arn:aws:sns:*:${AWS::AccountId}:*"
+
+  EventNotificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      VisibilityTimeout: 200
+      MessageRetentionPeriod: 1209600
+
+  EventNotificationEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref EventNotificationFunc
+      EventSourceArn: !GetAtt EventNotificationQueue.Arn
+      BatchSize: 1
+      Enabled: True
+
+  ##########################
+  # Lambda Function
+  ##########################
+
+  EventNotificationFunc:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - "EventNotificationFuncLogGroup"
+    Properties:
+      FunctionName: !Sub "${AppName}---event-notification"
+      Runtime: nodejs16.x
+      Role: !GetAtt EventNotificationFuncRole.Arn
+      Handler: index.handler
+      Environment:
+        Variables:
+          "GOV_BASE__SECURITY_HUB_TEAMS_INCOMING_WEBHOOK_URL_DEV" : !Ref SecurityHubTeamsIncomingWebhookUrlDev
+      TracingConfig:
+        Mode: Active
+      Architectures: ["arm64"]
+      MemorySize: 256
+      PackageType: "Zip"
+      Code:
+        S3Bucket: !Ref LambdaS3Bucket
+        S3Key: !Ref LambdaS3Key
+
+  EventNotificationFuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AppName}---event-notification"
+      RetentionInDays: 400
+
+  EventNotificationFuncRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}---event-notification"
+      Path: !Sub "/${AppName}/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "sts:AssumeRole"
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/gov-base---permissions-boundary-for-role"
