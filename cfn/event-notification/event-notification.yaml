@@ -9,7 +9,11 @@ Parameters:
     Type: "String"
     Default: "gov-base"
 
-  SecurityHubTeamsIncomingWebhookUrlDev:
+  EventNotificationTargetSecurityHub:
+    Description: ""
+    Type: "String"
+
+  EventNotificationTargetDevOpsGuru:
     Description: ""
     Type: "String"
 
@@ -122,7 +126,8 @@ Resources:
       Handler: index.handler
       Environment:
         Variables:
-          "GOV_BASE__SECURITY_HUB_TEAMS_INCOMING_WEBHOOK_URL_DEV" : !Ref SecurityHubTeamsIncomingWebhookUrlDev
+          "GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB" : !Ref EventNotificationTargetSecurityHub
+          "GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU" : !Ref EventNotificationTargetDevOpsGuru
       TracingConfig:
         Mode: Active
       Architectures: ["arm64"]

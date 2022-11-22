@@ -22,6 +22,16 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // 環境変数を読み込む
+    const EVENT_NOTIFICATION_TARGET_SECURITY_HUB = JSON.parse(
+      process.env.GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB
+    );
+    const EVENT_NOTIFICATION_TARGET_DEVOPS_GURU = JSON.parse(
+      process.env.GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU
+    );
+    console.log(EVENT_NOTIFICATION_TARGET_SECURITY_HUB);
+    console.log(EVENT_NOTIFICATION_TARGET_DEVOPS_GURU);
+
     // teams に投稿するメッセージを作成する
     let teamsTitle;
     let teamsMessage;
@@ -32,6 +42,10 @@ exports.handler = async (event, context) => {
       // Security Hub Findings の場合
 
       for (const element of originalEvent.detail.findings) {
+        const teamsIncomingWebHookUrl = findIncomingWebHookUrl(
+          element.AwsAccountId,
+          EVENT_NOTIFICATION_TARGET_SECURITY_HUB
+        );
         if (element.ProductName == "GuardDuty") {
           // GuardDuty の場合
 
@@ -55,7 +69,7 @@ exports.handler = async (event, context) => {
           **Description** : ${description}  
           ${sourceUrl}`;
         } else {
-          // GuardDuty 意外の場合
+          // GuardDuty 以外の場合
 
           // ASFF Required attributes
           // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html
@@ -78,8 +92,7 @@ exports.handler = async (event, context) => {
           **Description** : ${description}  
           ${sourceUrl}`;
         }
-
-        await postMessage(teamsTitle, teamsMessage);
+        await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
       }
     }
   } catch (e) {
@@ -88,11 +101,25 @@ exports.handler = async (event, context) => {
   }
 };
 
-const postMessage = async (teamsTitle, teamsMessage) => {
-  // teams に投稿する
-  const teamsIncomingWebHookUrl =
-    process.env.GOV_BASE__SECURITY_HUB_TEAMS_INCOMING_WEBHOOK_URL_DEV;
+const findIncomingWebHookUrl = (
+  awsAccountId,
+  eventNotificationTargetDictionary
+) => {
+  for (const key of Object.keys(eventNotificationTargetDictionary)) {
+    const element = eventNotificationTargetDictionary[key];
+    if (element.AwsAccountIds.includes(awsAccountId)) {
+      return element.TeamsIncomingWebhookUrl;
+    }
+  }
+  throw new Error(`Teams Incoming Web Hook URL for ${awsAccountId} not Found.`);
+};
 
+const postMessage = async (
+  teamsTitle,
+  teamsMessage,
+  teamsIncomingWebHookUrl
+) => {
+  // teams に投稿する
   const res = await axios.post(
     teamsIncomingWebHookUrl,
     {

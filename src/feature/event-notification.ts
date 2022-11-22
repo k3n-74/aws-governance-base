@@ -144,8 +144,16 @@ export class EventNotificationFeature {
             templateFilePath: `${__dirname}/../../cfn/event-notification/event-notification.yaml`,
             parameters: [
               {
-                ParameterKey: "SecurityHubTeamsIncomingWebhookUrlDev",
-                ParameterValue: C.i.securityHub.TeamsIncomingWebhookUrl.Dev,
+                ParameterKey: "EventNotificationTargetSecurityHub",
+                ParameterValue: JSON.stringify(
+                  C.i.eventNotificationTarget.SecurityHub
+                ),
+              },
+              {
+                ParameterKey: "EventNotificationTargetDevOpsGuru",
+                ParameterValue: JSON.stringify(
+                  C.i.eventNotificationTarget.DevOpsGuru
+                ),
               },
               {
                 ParameterKey: "LambdaS3Bucket",
