@@ -1,0 +1,185 @@
+
+{
+  "version": "0",
+  "id": "e8f701b4-cf55-261b-7844-b0d27804938d",
+  "detail-type": "DevOps Guru New Anomaly Association",
+  "source": "aws.devops-guru",
+  "account": "403363463177",
+  "time": "2022-11-20T18:33:54Z",
+  "region": "ap-northeast-1",
+  "resources": [],
+  "detail": {
+      "insightSeverity": "high",
+      "insightDescription": "ExecutionsFailed",
+      "anomalies": [
+          {
+              "startTime": "1668969000000",
+              "id": "AG-qJe1n0LsAAHIsfIGOZkkAAAGElk3sQIWLFHAZvZzy-TeLTp3XWVVRPm6HUG5G",
+              "sourceDetails": [
+                  {
+                      "dataSource": "CW_METRICS",
+                      "dataIdentifiers": {
+                          "stat": "Sum",
+                          "unit": "None",
+                          "period": "60",
+                          "namespace": "AWS/States",
+                          "name": "ExecutionsFailed",
+                          "dimensions": [
+                              {
+                                  "name": "StateMachineArn",
+                                  "value": "arn:aws:states:ap-northeast-1:403363463177:stateMachine:qak--dev-c---create-report-batch"
+                              }
+                          ]
+                      }
+                  }
+              ],
+              "associatedResourceArns": [
+                  "arn:aws:states:ap-northeast-1:403363463177:stateMachine:qak--dev-c---create-report-batch"
+              ]
+          }
+      ],
+      "accountId": "403363463177",
+      "messageType": "NEW_ASSOCIATION",
+      "startTime": "1668969000000",
+      "insightId": "AHu8tx4OXbtcqTqpWSEq0KIAAAAAAAAAADQ5Phi0DOQj9jXvgItYMGT4QyluItlz",
+      "region": "ap-northeast-1",
+      "resourceCollection": {
+          "tags": [
+              {
+                  "appBoundaryKey": "devops-guru---guest-app",
+                  "tagValues": [
+                      "ENABLED"
+                  ]
+              }
+          ]
+      }
+  }
+}
+
+
+
+
+
+{
+  "version": "0",
+  "id": "d538c861-806c-84ab-b3dc-114d1ef5cbf0",
+  "detail-type": "DevOps Guru New Insight Open",
+  "source": "aws.devops-guru",
+  "account": "403363463177",
+  "time": "2022-11-20T18:33:59Z",
+  "region": "ap-northeast-1",
+  "resources": [],
+  "detail": {
+      "insightSeverity": "high",
+      "insightDescription": "States ExecutionsFailed Anomalous In Application ENABLED",
+      "insightType": "REACTIVE",
+      "anomalies": [
+          {
+              "startTime": "1668969000000",
+              "id": "AG-qJe1n0LsAAHIsfIGOZkkAAAGElk3sQIWLFHAZvZzy-TeLTp3XWVVRPm6HUG5G",
+              "sourceDetails": [
+                  {
+                      "dataSource": "CW_METRICS",
+                      "dataIdentifiers": {
+                          "period": "60",
+                          "stat": "Sum",
+                          "unit": "None",
+                          "name": "ExecutionsFailed",
+                          "namespace": "AWS/States",
+                          "dimensions": [
+                              {
+                                  "name": "StateMachineArn",
+                                  "value": "arn:aws:states:ap-northeast-1:403363463177:stateMachine:qak--dev-c---create-report-batch"
+                              }
+                          ]
+                      }
+                  }
+              ],
+              "associatedResourceArns": [
+                  "arn:aws:states:ap-northeast-1:403363463177:stateMachine:qak--dev-c---create-report-batch"
+              ]
+          }
+      ],
+      "accountId": "403363463177",
+      "messageType": "NEW_INSIGHT",
+      "insightUrl": "https://ap-northeast-1.console.aws.amazon.com/devops-guru/insight/reactive/AHu8tx4OXbtcqTqpWSEq0KIAAAAAAAAAADQ5Phi0DOQj9jXvgItYMGT4QyluItlz",
+      "startTime": "1668969000000",
+      "insightId": "AHu8tx4OXbtcqTqpWSEq0KIAAAAAAAAAADQ5Phi0DOQj9jXvgItYMGT4QyluItlz",
+      "region": "ap-northeast-1",
+      "resourceCollection": {
+          "tags": [
+              {
+                  "appBoundaryKey": "devops-guru---guest-app",
+                  "tagValues": [
+                      "ENABLED"
+                  ]
+              }
+          ]
+      }
+  }
+}
+
+
+
+
+
+{
+  "version": "0",
+  "id": "22de3dde-da49-a516-820a-6fb7b8e5ea53",
+  "detail-type": "DevOps Guru Insight Closed",
+  "source": "aws.devops-guru",
+  "account": "403363463177",
+  "time": "2022-11-20T18:44:00Z",
+  "region": "ap-northeast-1",
+  "resources": [],
+  "detail": {
+      "insightSeverity": "high",
+      "insightDescription": "States ExecutionsFailed Anomalous In Application ENABLED",
+      "insightType": "REACTIVE",
+      "anomalies": [
+          {
+              "startTime": "1668969000000",
+              "id": "AG-qJe1n0LsAAHIsfIGOZkkAAAGElk3sQIWLFHAZvZzy-TeLTp3XWVVRPm6HUG5G",
+              "endTime": "1668969000000",
+              "sourceDetails": [
+                  {
+                      "dataSource": "CW_METRICS",
+                      "dataIdentifiers": {
+                          "period": "60",
+                          "stat": "Sum",
+                          "unit": "None",
+                          "name": "ExecutionsFailed",
+                          "namespace": "AWS/States",
+                          "dimensions": [
+                              {
+                                  "name": "StateMachineArn",
+                                  "value": "arn:aws:states:ap-northeast-1:403363463177:stateMachine:qak--dev-c---create-report-batch"
+                              }
+                          ]
+                      }
+                  }
+              ],
+              "associatedResourceArns": [
+                  "arn:aws:states:ap-northeast-1:403363463177:stateMachine:qak--dev-c---create-report-batch"
+              ]
+          }
+      ],
+      "accountId": "403363463177",
+      "messageType": "CLOSED_INSIGHT",
+      "insightUrl": "https://ap-northeast-1.console.aws.amazon.com/devops-guru/insight/reactive/AHu8tx4OXbtcqTqpWSEq0KIAAAAAAAAAADQ5Phi0DOQj9jXvgItYMGT4QyluItlz",
+      "startTime": "1668969000000",
+      "insightId": "AHu8tx4OXbtcqTqpWSEq0KIAAAAAAAAAADQ5Phi0DOQj9jXvgItYMGT4QyluItlz",
+      "endTime": "1668969600000",
+      "region": "ap-northeast-1",
+      "resourceCollection": {
+          "tags": [
+              {
+                  "appBoundaryKey": "devops-guru---guest-app",
+                  "tagValues": [
+                      "ENABLED"
+                  ]
+              }
+          ]
+      }
+  }
+}

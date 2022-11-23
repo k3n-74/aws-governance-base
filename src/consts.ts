@@ -25,16 +25,20 @@ export type Structure = {
   Guests: [{ id: string }];
 };
 
-export type SecurityHub = {
-  TeamsIncomingWebhookUrl: {
-    Dev: string;
-  };
+export type EventNotificationInfo = {
+  TeamsIncomingWebhookUrl: string;
+  AwsAccountIds: string[];
+};
+
+export type EventNotificationTarget = {
+  SecurityHub: Record<string, EventNotificationInfo>;
+  DevOpsGuru: Record<string, EventNotificationInfo>;
 };
 
 export type AwsGovBaseConfig = {
   General: General;
   Structure: Structure;
-  SecurityHub: SecurityHub;
+  EventNotificationTarget: EventNotificationTarget;
 };
 
 export type InitFuncInput = {
@@ -47,14 +51,19 @@ export class Consts {
 
   public readonly general: General;
   public readonly structure: Structure;
-  public readonly securityHub: SecurityHub;
+  public readonly eventNotificationTarget: EventNotificationTarget;
   public readonly commandOptions: CommandOptions;
   public readonly parameters: cfn.Parameter[];
   public readonly tags: cfn.Tag[];
+  public readonly notificationEventPatternSourceList: string[] = [
+    "aws.securityhub",
+    "aws.devops-guru",
+  ];
   private constructor(initFuncInput: InitFuncInput) {
     this.general = initFuncInput.awsGovBaseConfig.General;
     this.structure = initFuncInput.awsGovBaseConfig.Structure;
-    this.securityHub = initFuncInput.awsGovBaseConfig.SecurityHub;
+    this.eventNotificationTarget =
+      initFuncInput.awsGovBaseConfig.EventNotificationTarget;
     this.commandOptions = initFuncInput.commandOptions;
 
     this.parameters = [

@@ -14,11 +14,11 @@ import { logger } from "../logger";
 import * as iam from "@aws-sdk/client-iam";
 
 export class AccountPasswordPolicyFeature {
-  private readonly featureName = "account-password-policy";
+  private readonly featureNameList = ["account-password-policy"];
   public constructor() {}
   public setup = async (): Promise<void> => {
     // セットアップ対象外の機能だったら何もしないで終了
-    if (!isSetupTargetFeature(this.featureName)) return;
+    if (!isSetupTargetFeature(this.featureNameList)) return;
 
     // 全AWSアカウントのリストを作成する
     // GuestアカウントのリストからAWS Account IDだけのリストを作成する

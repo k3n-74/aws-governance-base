@@ -4,8 +4,10 @@ import { JumpFeature } from "../feature/jump";
 import { GuardDutyFeature } from "../feature/guard-duty";
 import { AccountPasswordPolicyFeature } from "../feature/account-password-policy";
 import { IamAccessAnalyzerFeature } from "../feature/iam-access-analyzer";
-import { SecurityAlartNotificationFeature } from "../feature/security-alart-notification";
+import { EventNotificationFeature } from "../feature/event-notification";
+import { EventAggregationFeature } from "../feature/event-aggregation";
 import { DetectiveFeature } from "../feature/detective";
+import { CommonFeature } from "../feature/common";
 import { DevOpsGuruFeature } from "../feature/devops-guru";
 import {
   print,
@@ -26,6 +28,10 @@ export class SetupCommand {
     await fooFeature.setup();
 
     // Account Password Policy
+    const commonFeature = new CommonFeature();
+    await commonFeature.setup();
+
+    // Account Password Policy
     const accountPasswordPolicy = new AccountPasswordPolicyFeature();
     await accountPasswordPolicy.setup();
 
@@ -41,10 +47,13 @@ export class SetupCommand {
     const iamAccessAnalyzer = new IamAccessAnalyzerFeature();
     await iamAccessAnalyzer.setup();
 
-    // Security Alart Notification
-    const securityAlartNotificationFeature =
-      new SecurityAlartNotificationFeature();
-    await securityAlartNotificationFeature.setup();
+    // Event Notification
+    const eventNotificationFeature = new EventNotificationFeature();
+    await eventNotificationFeature.setup();
+
+    // Event Aggregation
+    const eventAggregationFeature = new EventAggregationFeature();
+    await eventAggregationFeature.setup();
 
     // DevOps Guru
     const devOpsGuruFeature = new DevOpsGuruFeature();

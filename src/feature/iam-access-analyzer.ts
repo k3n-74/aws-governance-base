@@ -15,11 +15,11 @@ import * as throat from "throat";
 import { logger } from "../logger";
 
 export class IamAccessAnalyzerFeature {
-  private readonly featureName = "iam-access-analyzer";
+  private readonly featureNameList = ["iam-access-analyzer"];
   public constructor() {}
   public setup = async (): Promise<void> => {
     // セットアップ対象外の機能だったら何もしないで終了
-    if (!isSetupTargetFeature(this.featureName)) return;
+    if (!isSetupTargetFeature(this.featureNameList)) return;
 
     // 全AWSアカウントのリストを作成する
     // GuestアカウントのリストからAWS Account IDだけのリストを作成する

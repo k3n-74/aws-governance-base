@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-bus-target.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+  
+  SourceAwsAccountIds:
+    Description: "comma delimited source aws account id list."
+    Type: "CommaDelimitedList"
+    Default: ""
+
+  NotificationEventPatternSourceList:
+    Description: "comma delimited notification event source list."
+    Type: "CommaDelimitedList"
+    Default: ""
+
+Resources: 
+
+  ### 他AWSアカウントのイベントルールからイベントを受け取るためのポリシー
+  EventBusPolicy:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName: default
+      StatementId: !Sub "${AppName}---put-events-from-source-event-bus"
+      Statement:
+        Sid: !Sub "${AppName}---put-events-from-source-event-bus"
+        Effect: "Allow"
+        Principal: 
+          AWS: !Ref SourceAwsAccountIds
+        Action: "events:PutEvents"
+        Resource : !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+
+  ### イベントをCloudWatch Logsに出力
+
+  ## Log Group とリソースベースのポリシー
+  NotificationEventLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/events/${AppName}---notification-event-log"
+      RetentionInDays: 400
+
+  EventBridgeToNotificationEventLogGroup:
+    Type: AWS::Logs::ResourcePolicy
+    Properties:
+      PolicyName: !Sub "${AppName}---eventbridge-to-notification-event-loggroup" 
+      PolicyDocument: !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "events.amazonaws.com"
+              },
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "${NotificationEventLogGroup.Arn}"
+            }
+          ]
+        }
+
+  ### ログ出力するためのルール
+  # "aws.securityhub" で統合されるサービス一覧
+  # https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary
+
+  ExportNotificationEventsToLogGroup:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---export-notification-event-to-loggroup"
+      EventBusName: "default"
+      State: "ENABLED"
+      EventPattern:
+        source: !Ref NotificationEventPatternSourceList
+      # EventPattern: |
+      #   {
+      #     "source": [
+      #       "aws.securityhub","aws.devops-guru"
+      #     ]
+      #   }
+      Targets:
+        - Arn: !GetAtt NotificationEventLogGroup.Arn
+          Id: !Sub "${AppName}---log-group"

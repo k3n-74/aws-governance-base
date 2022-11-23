@@ -39,18 +39,26 @@ export const println = (str: string) => {
   process.stdout.write(str);
 };
 
-export const isSetupTargetFeature = (featureName: string): boolean => {
-  const featureWithPad = `feature: ${featureName}`.padEnd(32, " ");
+export const isSetupTargetFeature = (featureNameList: string[]): boolean => {
   if (
     // Detectiveだけは単体セットアップのみ可能にする。
     // DetectiveはGuardDutyを有効化してから48時間以上経過した後で
     // セットアップ可能であり、他とセットアップタイミングが異なるため。
-    (C.i.commandOptions.feature == undefined && featureName != "detective") ||
-    C.i.commandOptions.feature == featureName
+    (C.i.commandOptions.feature == undefined &&
+      !featureNameList.includes("detective")) ||
+    (C.i.commandOptions.feature != undefined &&
+      featureNameList.includes(C.i.commandOptions.feature))
   ) {
+    // デプロイするときに表示する feature名 の決め方。
+    // --featureオプションで指定されてデプロイするときは、そのオプションで指定された値。
+    // --featureオプションで指定されていないときは代表フィーチャー名（featureの先頭配列）
+    const deployFeature = C.i.commandOptions.feature ?? featureNameList[0];
+    const featureWithPad = `feature: ${deployFeature}`.padEnd(32, " ");
     println(`${featureWithPad}  start deploy`);
     return true;
   } else {
+    // デプロイしない時に表示する feature名 は代表フィーチャー名（featureの先頭配列）
+    const featureWithPad = `feature: ${featureNameList[0]}`.padEnd(32, " ");
     println(`${featureWithPad}  skip`);
     return false;
   }
@@ -153,7 +161,7 @@ export const deploy = async (
         logger.error(ac.red(`Unknown CHANGE SET TYPE : ${deployType}`));
       }
       println(
-        `${awsAccountIdAndRegionStringWidhPad}  ${stackName}  ${deployResult.deployResult}`
+        `${awsAccountIdAndRegionStringWidhPad}  ${stackName}  ${deployType}`
       );
     }
   } else {

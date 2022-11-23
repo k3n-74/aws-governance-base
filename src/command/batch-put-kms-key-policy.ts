@@ -145,7 +145,7 @@ export class BatchPutKmsKeyPolicyCommand {
           );
         } else {
           // Rry Run じゃないときは変更を実行する。
-          const putKeyPolicyCommandOutput = kmsClient.send(
+          const putKeyPolicyCommandOutput = await kmsClient.send(
             new kms.PutKeyPolicyCommand({
               KeyId: describeKeyCommandOutput.KeyMetadata?.KeyId,
               PolicyName: "default",
