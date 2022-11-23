@@ -163,6 +163,11 @@ export class EventNotificationFeature {
                 ParameterKey: "LambdaS3Key",
                 ParameterValue: lambdaS3Key,
               },
+              {
+                ParameterKey: "NotificationEventPatternSourceList",
+                ParameterValue:
+                  C.i.notificationEventPatternSourceList.join(", "),
+              },
             ],
           },
         ],

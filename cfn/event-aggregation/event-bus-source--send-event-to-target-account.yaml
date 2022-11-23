@@ -13,6 +13,11 @@ Parameters:
     Description: "target aws account id."
     Type: "String"
 
+  NotificationEventPatternSourceList:
+    Description: "comma delimited notification event source list."
+    Type: "CommaDelimitedList"
+    Default: ""
+
 Resources: 
 
   ### ローカルのイベントをターゲットのイベントバスに送信するためのロール
@@ -62,12 +67,14 @@ Resources:
       EventBusName: "default"
       State: "ENABLED"
       RoleArn: !GetAtt SendNotificationEventToTargetAccountEventBusRole.Arn
-      EventPattern: |
-        {
-          "source": [
-            "aws.securityhub","aws.devops-guru"
-          ]
-        }
+      EventPattern:
+        source: !Ref NotificationEventPatternSourceList
+      # EventPattern: |
+      #   {
+      #     "source": [
+      #       "aws.securityhub","aws.devops-guru"
+      #     ]
+      #   }
       Targets:
         - Arn: !Sub "arn:aws:events:${AWS::Region}:${TargetAwsAccountId}:event-bus/default"
           Id: !Sub "${AppName}---target-account-event-bus"

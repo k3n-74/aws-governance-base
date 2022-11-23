@@ -55,6 +55,10 @@ export class Consts {
   public readonly commandOptions: CommandOptions;
   public readonly parameters: cfn.Parameter[];
   public readonly tags: cfn.Tag[];
+  public readonly notificationEventPatternSourceList: string[] = [
+    "aws.securityhub",
+    "aws.devops-guru",
+  ];
   private constructor(initFuncInput: InitFuncInput) {
     this.general = initFuncInput.awsGovBaseConfig.General;
     this.structure = initFuncInput.awsGovBaseConfig.Structure;

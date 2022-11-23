@@ -14,6 +14,11 @@ Parameters:
     Type: "CommaDelimitedList"
     Default: ""
 
+  NotificationEventPatternSourceList:
+    Description: "comma delimited notification event source list."
+    Type: "CommaDelimitedList"
+    Default: ""
+
 Resources: 
 
   ### 他AWSアカウントのイベントルールからイベントを受け取るためのポリシー
@@ -71,12 +76,14 @@ Resources:
       Name: !Sub "${AppName}---export-notification-event-to-loggroup"
       EventBusName: "default"
       State: "ENABLED"
-      EventPattern: |
-        {
-          "source": [
-            "aws.securityhub","aws.devops-guru"
-          ]
-        }
+      EventPattern:
+        source: !Ref NotificationEventPatternSourceList
+      # EventPattern: |
+      #   {
+      #     "source": [
+      #       "aws.securityhub","aws.devops-guru"
+      #     ]
+      #   }
       Targets:
         - Arn: !GetAtt NotificationEventLogGroup.Arn
           Id: !Sub "${AppName}---log-group"

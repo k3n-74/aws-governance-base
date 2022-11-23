@@ -25,6 +25,10 @@ Parameters:
     Description: "Lambda zip"
     Type: "String"
 
+  NotificationEventPatternSourceList:
+    Description: "comma delimited notification event source list."
+    Type: "CommaDelimitedList"
+    Default: ""
 
 Resources: 
 
@@ -39,12 +43,14 @@ Resources:
       Name: !Sub "${AppName}---subscribe-event-notification"
       EventBusName: "default"
       State: "ENABLED"
-      EventPattern: |
-        {
-          "source": [
-            "aws.securityhub","aws.devops-guru"
-          ]
-        }
+      EventPattern:
+        source: !Ref NotificationEventPatternSourceList
+      # EventPattern: |
+      #   {
+      #     "source": [
+      #       "aws.securityhub","aws.devops-guru"
+      #     ]
+      #   }
       Targets:
         - Arn: !Ref EventNotificationTopic
           Id: !Sub "${AppName}---sns-topic-for-guardduty"

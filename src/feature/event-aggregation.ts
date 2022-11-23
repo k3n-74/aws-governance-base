@@ -43,6 +43,10 @@ export class EventAggregationFeature {
               ParameterKey: "SourceAwsAccountIds",
               ParameterValue: awsAccountIdsExceptAudit.join(", "),
             },
+            {
+              ParameterKey: "NotificationEventPatternSourceList",
+              ParameterValue: C.i.notificationEventPatternSourceList.join(", "),
+            },
           ],
         },
       ],
@@ -62,6 +66,11 @@ export class EventAggregationFeature {
               {
                 ParameterKey: "TargetAwsAccountId",
                 ParameterValue: C.i.structure.Audit.id,
+              },
+              {
+                ParameterKey: "NotificationEventPatternSourceList",
+                ParameterValue:
+                  C.i.notificationEventPatternSourceList.join(", "),
               },
             ],
           },
