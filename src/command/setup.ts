@@ -9,6 +9,7 @@ import { EventAggregationFeature } from "../feature/event-aggregation";
 import { DetectiveFeature } from "../feature/detective";
 import { CommonFeature } from "../feature/common";
 import { DevOpsGuruFeature } from "../feature/devops-guru";
+import { AutoRemediationFeature } from "../feature/auto-remediation";
 import {
   print,
   println,
@@ -58,6 +59,10 @@ export class SetupCommand {
     // DevOps Guru
     const devOpsGuruFeature = new DevOpsGuruFeature();
     await devOpsGuruFeature.setup();
+
+    // Auto Remediation
+    const autoRemediationFeature = new AutoRemediationFeature();
+    await autoRemediationFeature.setup();
 
     // Detective
     // GuardDutyをデプロイしてから48時間時間後
