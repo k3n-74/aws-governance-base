@@ -66,10 +66,10 @@ exports.handler = async (event, context) => {
 
           // title, message を組み立てる
           teamsTitle = `GuardDuty | ${awsAccountId} | ${region} | ${title}`;
-          teamsMessage = `**Severity** : ${severity}  
-            **Types** : ${types}  
-            **Description** : ${description}  
-            ${sourceUrl}  
+          teamsMessage = `**Severity** : ${severity}<br/>
+            **Types** : ${types}<br/>
+            **Description** : ${description}<br/>
+            ${sourceUrl}<br/>
             **event-id** : ${eventId}`;
 
           // メッセージ送信する。
@@ -96,10 +96,10 @@ exports.handler = async (event, context) => {
 
           // title, message を組み立てる
           teamsTitle = `${productName} | ${awsAccountId} | ${region} | ${title}`;
-          teamsMessage = `**Severity** : ${severity}  
-            **Types** : ${types}  
-            **Description** : ${description}  
-            ${sourceUrl}  
+          teamsMessage = `**Severity** : ${severity}<br/>
+            **Types** : ${types}<br/>
+            **Description** : ${description}<br/>
+            ${sourceUrl}<br/>
             **event-id** : ${eventId}`;
 
           // メッセージ送信する。
@@ -126,8 +126,8 @@ exports.handler = async (event, context) => {
 
       // title, message を組み立てる
       teamsTitle = `DevOps Guru | ${awsAccountId} | ${region} | ${description}`;
-      teamsMessage = `**Severity** : ${severity}  
-        ${sourceUrl}  
+      teamsMessage = `**Severity** : ${severity}<br/>
+        ${sourceUrl}<br/>
         **event-id** : ${eventId}`;
 
       // メッセージ送信する。
