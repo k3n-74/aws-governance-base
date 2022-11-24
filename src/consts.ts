@@ -13,6 +13,7 @@ export type General = {
   AppName: string;
   BaseRegion: string;
   Profiles: Record<string, string>;
+  CmkAliasName: string;
 };
 
 export type Structure = {

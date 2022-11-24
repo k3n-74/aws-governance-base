@@ -213,3 +213,13 @@ export const listAvailableRegions = async (
   logger.debug(availableRegions);
   return availableRegions;
 };
+
+// 引数で受け取った２つの配列に重複した要素があるのかを確認する
+export const hasDuplicateStringElement = (
+  strListA: string[],
+  strListB: string[]
+) => {
+  const elements = strListA.concat(strListB);
+  const setElements = new Set(elements);
+  return setElements.size !== elements.length;
+};

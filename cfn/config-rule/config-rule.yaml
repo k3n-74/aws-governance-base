@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "config-rule.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  CmkAliasName:
+    Description: "CMK Alias Name"
+    Type: "String"
+
+  EnableCloudwatchLogGroupEncrypted:
+    Type: "String"
+    AllowedValues:
+      - "YES"
+      - "NO"
+
+  EnableS3DefaultEncryptionKms:
+    Type: "String"
+    AllowedValues:
+      - "YES"
+      - "NO"
+
+Conditions:
+  IsEnableCloudwatchLogGroupEncrypted: !Equals [!Ref EnableCloudwatchLogGroupEncrypted, "YES" ]
+  IsEnableS3DefaultEncryptionKms: !Equals [!Ref EnableS3DefaultEncryptionKms, "YES" ]
+
+Resources: 
+
+  # https://docs.aws.amazon.com/config/latest/developerguide/cloudwatch-log-group-encrypted.html
+  CloudwatchLogGroupEncrypted:
+    Type: "AWS::Config::ConfigRule"
+    Condition: IsEnableCloudwatchLogGroupEncrypted
+    Properties:
+      ConfigRuleName: !Sub "${AppName}---cloudwatch-log-group-encrypted"
+      MaximumExecutionFrequency: "TwentyFour_Hours"
+      InputParameters:
+        KmsKeyId: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${CmkAliasName}"
+      Scope:
+        ComplianceResourceTypes:
+          - "AWS::Logs::LogGroup"
+      Source:
+        Owner: "AWS"
+        SourceIdentifier: "CLOUDWATCH_LOG_GROUP_ENCRYPTED" 
+
+  # https://docs.aws.amazon.com/config/latest/developerguide/s3-default-encryption-kms.html
+  S3DefaultEncryptionKms:
+    Type: "AWS::Config::ConfigRule"
+    Condition: IsEnableS3DefaultEncryptionKms
+    Properties:
+      ConfigRuleName: !Sub "${AppName}---s3-default-encryption-kms"
+      # MaximumExecutionFrequency を指定するとエラーになる。
+      # A maximum execution frequency for this rule is not allowed because only a change in resources triggers this managed rule. 
+      # MaximumExecutionFrequency: "TwentyFour_Hours"
+      InputParameters:
+        kmsKeyArns: !Sub "alias/${CmkAliasName},arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${CmkAliasName}"
+      Scope:
+        ComplianceResourceTypes:
+          - "AWS::S3::Bucket"
+      Source:
+        Owner: "AWS"
+        SourceIdentifier: "S3_DEFAULT_ENCRYPTION_KMS"
