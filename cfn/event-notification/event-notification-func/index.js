@@ -10,12 +10,12 @@ exports.handler = async (event, context) => {
 
     const snsEvent = JSON.parse(event.Records[0].body);
     console.log("SNS EVENT:");
-    console.log(snsEvent);
+    console.log(JSON.stringify(snsEvent));
 
     const snsMessage = snsEvent.Message;
     originalEvent = JSON.parse(snsMessage);
     console.log("ORIGINAL EVENT:");
-    console.log(originalEvent);
+    console.log(JSON.stringify(originalEvent));
   } catch (e) {
     console.log("illegal event format.");
     console.log(e);
