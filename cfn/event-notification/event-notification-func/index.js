@@ -74,6 +74,35 @@ exports.handler = async (event, context) => {
 
           // メッセージ送信する。
           await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+        } else if (element.ProductName == "Config") {
+          // Config Rule の場合
+          // ASFF Required attributes
+          // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html
+          const awsAccountId = element.AwsAccountId;
+          const title = element.Title;
+          const severity = element.Severity.Label;
+          const types = element.Types.join(", ");
+          const description = element.Description;
+
+          // Optional top-level attributes
+          // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html
+          const region = element.Region ?? "";
+          // const sourceUrl = element.SourceUrl ?? "";
+          const productName = element.ProductName ?? "";
+          const configRuleName =
+            element.ProductFields["aws/config/ConfigRuleName"];
+          const sourceUrl = `https://${region}.console.aws.amazon.com/config/home?region=${region}#/rules/details?configRuleName=${configRuleName}`;
+
+          // title, message を組み立てる
+          teamsTitle = `${productName} | ${awsAccountId} | ${region} | ${title}`;
+          teamsMessage = `**Severity** : ${severity}<br/>
+            **Types** : ${types}<br/>
+            **Description** : ${description}<br/>
+            ${sourceUrl}<br/>
+            **event-id** : ${eventId}`;
+
+          // メッセージ送信する。
+          await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
         } else if (element.ProductName == "Security Hub") {
           // Security Hub のコントロールの通知は多いので何もしない。
           console.log("PASS : Product name is Security Hub.");
