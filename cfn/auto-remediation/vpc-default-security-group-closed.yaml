@@ -9,6 +9,13 @@ Parameters:
     Type: "String"
     Default: "gov-base"
 
+  BaseRegion:
+    Description: "Base region."
+    Type: "String"
+
+Conditions:
+  IsBaseRegion: !Equals [ !Ref BaseRegion, !Ref AWS::Region ]
+
 Resources: 
 
   VpcDefaultSecurityGroupClosed:
@@ -38,13 +45,14 @@ Resources:
         AutomationAssumeRole:
           StaticValue:
             Values:
-              - !GetAtt SsmAutomationRoleForRemediationRemoveVpcDefaultSgRules.Arn
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${AppName}---remediation--remove-vpc-default-sg-rules"
         GroupId:
           ResourceValue:
             Value: "RESOURCE_ID"
 
   SsmAutomationRoleForRemediationRemoveVpcDefaultSgRules:
     Type: "AWS::IAM::Role"
+    Condition: IsBaseRegion
     Properties:
       RoleName: !Sub "${AppName}---remediation--remove-vpc-default-sg-rules"
       # Path で / 以外を指定すると下記エラーになる。
@@ -66,6 +74,7 @@ Resources:
 
   SsmAutomationRoleForRemediationRemoveVpcDefaultSgPolicy:
     Type: "AWS::IAM::Policy"
+    Condition: IsBaseRegion
     Properties:
       PolicyName: !Sub "${AppName}---remediation--remove-vpc-default-sg-rules"
       Roles:

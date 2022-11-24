@@ -141,28 +141,39 @@ export const deploy = async (
         ? stack.parameters.concat(C.i.parameters)
         : C.i.parameters;
       logger.debug(parameters);
-      const deployResult = await dep.deploy({
-        stackName: stackName,
-        templateName: stack.templateName,
-        templateFilePath: stack.templateFilePath,
-        parameters: parameters,
-        tags: C.i.tags,
-      });
 
-      let deployType = "";
-      if (deployResult.deployResult == "EMPTY CHANGESET") {
-        deployType = ac.yellow("EMPTY CHANGESET");
-      } else if (deployResult.deployResult == "CREATE") {
-        deployType = ac.blue("CREATE");
-      } else if (deployResult.deployResult == "UPDATE") {
-        deployType = ac.green("UPDATE");
-      } else {
-        deployType = deployResult.deployResult;
-        logger.error(ac.red(`Unknown CHANGE SET TYPE : ${deployType}`));
+      try {
+        const deployResult = await dep.deploy({
+          stackName: stackName,
+          templateName: stack.templateName,
+          templateFilePath: stack.templateFilePath,
+          parameters: parameters,
+          tags: C.i.tags,
+        });
+
+        let deployType = "";
+        if (deployResult.deployResult == "EMPTY CHANGESET") {
+          deployType = ac.yellow("EMPTY CHANGESET");
+        } else if (deployResult.deployResult == "CREATE") {
+          deployType = ac.blue("CREATE");
+        } else if (deployResult.deployResult == "UPDATE") {
+          deployType = ac.green("UPDATE");
+        } else {
+          deployType = deployResult.deployResult;
+          logger.error(ac.red(`Unknown CHANGE SET TYPE : ${deployType}`));
+        }
+        println(
+          `${awsAccountIdAndRegionStringWidhPad}  ${stackName}  ${deployType}`
+        );
+      } catch (e) {
+        logger.error(
+          deployFuncInput.awsAccountId,
+          deployFuncInput.region,
+          stackName
+        );
+        logger.error(e);
+        throw e;
       }
-      println(
-        `${awsAccountIdAndRegionStringWidhPad}  ${stackName}  ${deployType}`
-      );
     }
   } else {
     println(`${awsAccountIdAndRegionStringWidhPad}  ->  SKIP`);
