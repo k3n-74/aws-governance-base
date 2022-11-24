@@ -9,6 +9,7 @@ import { EventAggregationFeature } from "../feature/event-aggregation";
 import { DetectiveFeature } from "../feature/detective";
 import { CommonFeature } from "../feature/common";
 import { DevOpsGuruFeature } from "../feature/devops-guru";
+import { ConfigRuleFeature } from "../feature/config-rule";
 import { AutoRemediationFeature } from "../feature/auto-remediation";
 import {
   print,
@@ -59,6 +60,10 @@ export class SetupCommand {
     // DevOps Guru
     const devOpsGuruFeature = new DevOpsGuruFeature();
     await devOpsGuruFeature.setup();
+
+    // Config Rule
+    const configRuleFeature = new ConfigRuleFeature();
+    await configRuleFeature.setup();
 
     // Auto Remediation
     const autoRemediationFeature = new AutoRemediationFeature();
