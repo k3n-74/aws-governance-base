@@ -59,6 +59,7 @@ export class Consts {
   public readonly notificationEventPatternSourceList: string[] = [
     "aws.securityhub",
     "aws.devops-guru",
+    "aws.health",
   ];
   private constructor(initFuncInput: InitFuncInput) {
     this.general = initFuncInput.awsGovBaseConfig.General;
