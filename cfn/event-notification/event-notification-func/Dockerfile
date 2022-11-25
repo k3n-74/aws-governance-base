@@ -9,7 +9,7 @@ ARG WORKDIR_PATH=/tmp/WORKDIR
 # Lambda関数をビルドするためのコンテナ
 ##############################################################
 
-FROM public.ecr.aws/docker/library/node:16.18.1-bullseye-slim AS build-stage
+FROM public.ecr.aws/docker/library/node:18.12.1-bullseye-slim AS build-stage
 
 ARG WORKDIR_PATH
 

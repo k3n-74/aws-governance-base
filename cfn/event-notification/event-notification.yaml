@@ -131,11 +131,12 @@ Resources:
       - "EventNotificationFuncLogGroup"
     Properties:
       FunctionName: !Sub "${AppName}---event-notification"
-      Runtime: nodejs16.x
+      Runtime: nodejs18.x
       Role: !GetAtt EventNotificationFuncRole.Arn
       Handler: index.handler
       Environment:
         Variables:
+          "GOV_BASE__APP_NAME" : !Ref AppName
           "GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB" : !Ref EventNotificationTargetSecurityHub
           "GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU" : !Ref EventNotificationTargetDevOpsGuru
       TracingConfig:
@@ -157,7 +158,7 @@ Resources:
   EventNotificationFuncRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${AppName}---event-notification"
+      RoleName: !Sub "${AppName}---event-notification-func"
       Path: !Sub "/${AppName}/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -168,4 +169,19 @@ Resources:
               Service: lambda.amazonaws.com
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/AdministratorAccess"
-      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/gov-base---permissions-boundary-for-role"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
+
+  EventNotificationFuncRolePlicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AppName}---event-notification-func"
+      Roles:
+        - !Ref EventNotificationFuncRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Resource: 
+              - "*"

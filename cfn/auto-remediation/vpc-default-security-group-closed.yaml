@@ -56,7 +56,7 @@ Resources:
     Properties:
       RoleName: !Sub "${AppName}---remediation--remove-vpc-default-sg-rules"
       # Path で / 以外を指定すると下記エラーになる。
-      # Parameter \"AutomationAssumeRole\" has value \"arn:aws:iam::403363463177:role/gov-base/gov-base---remediation--remove-vpc-default-sg-rules\" not matching \"^arn:(aws[a-zA-Z-]*)?:iam::\\d{12}:role/[\\w+=,.@-]+$\".
+      # Parameter \"AutomationAssumeRole\" has value \"arn:aws:iam::0123456789012:role/gov-base/gov-base---remediation--remove-vpc-default-sg-rules\" not matching \"^arn:(aws[a-zA-Z-]*)?:iam::\\d{12}:role/[\\w+=,.@-]+$\".
       # Path: !Sub "/${AppName}/"
       Path: "/"
       ManagedPolicyArns:
@@ -70,7 +70,7 @@ Resources:
             Principal: 
               Service: 
                 - "ssm.amazonaws.com"
-      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/gov-base---permissions-boundary-for-role"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
 
   SsmAutomationRoleForRemediationRemoveVpcDefaultSgPolicy:
     Type: "AWS::IAM::Policy"
