@@ -32,10 +32,8 @@ exports.handler = async (event, context) => {
     console.log(EVENT_NOTIFICATION_TARGET_SECURITY_HUB);
     console.log(EVENT_NOTIFICATION_TARGET_DEVOPS_GURU);
 
-    // teams に投稿するメッセージを作成する
-    let teamsTitle;
-    let teamsMessage;
     if (
+      // aws.securityhub
       originalEvent.source == "aws.securityhub" &&
       originalEvent["detail-type"] == "Security Hub Findings - Imported"
     ) {
@@ -44,123 +42,59 @@ exports.handler = async (event, context) => {
       const eventId = originalEvent.id;
 
       for (const element of originalEvent.detail.findings) {
+        // Security Hub用のIncoming Web Hook URL を取得する
         const teamsIncomingWebHookUrl = findIncomingWebHookUrl(
           element.AwsAccountId,
           EVENT_NOTIFICATION_TARGET_SECURITY_HUB
         );
         if (element.ProductName == "GuardDuty") {
           // GuardDuty の場合
-
-          // ASFF Required attributes
-          // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html
-          const awsAccountId = element.AwsAccountId;
-          const title = element.Title;
-          const severity = element.Severity.Label;
-          const types = element.Types.join(", ");
-          const description = element.Description;
-
-          // Optional top-level attributes
-          // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html
-          const region = element.Region ?? "";
-          const sourceUrl = element.SourceUrl ?? "";
-
-          // title, message を組み立てる
-          teamsTitle = `GuardDuty | ${awsAccountId} | ${region} | ${title}`;
-          teamsMessage = `**Severity** : ${severity}<br/>
-            **Types** : ${types}<br/>
-            **Description** : ${description}<br/>
-            ${sourceUrl}<br/>
-            **event-id** : ${eventId}`;
-
-          // メッセージ送信する。
-          await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+          const eventId = originalEvent.id;
+          await postGuardDutyMessage(eventId, element, teamsIncomingWebHookUrl);
         } else if (element.ProductName == "Config") {
           // Config Rule の場合
-          // ASFF Required attributes
-          // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html
-          const awsAccountId = element.AwsAccountId;
-          const title = element.Title;
-          const severity = element.Severity.Label;
-          const types = element.Types.join(", ");
-          const description = element.Description;
-
-          // Optional top-level attributes
-          // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html
-          const region = element.Region ?? "";
-          // const sourceUrl = element.SourceUrl ?? "";
-          const productName = element.ProductName ?? "";
-          const configRuleName =
-            element.ProductFields["aws/config/ConfigRuleName"];
-          const sourceUrl = `https://${region}.console.aws.amazon.com/config/home?region=${region}#/rules/details?configRuleName=${configRuleName}`;
-
-          // title, message を組み立てる
-          teamsTitle = `${productName} | ${awsAccountId} | ${region} | ${title}`;
-          teamsMessage = `**Severity** : ${severity}<br/>
-            **Types** : ${types}<br/>
-            **Description** : ${description}<br/>
-            ${sourceUrl}<br/>
-            **event-id** : ${eventId}`;
-
-          // メッセージ送信する。
-          await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+          await postConfigMessage(eventId, element, teamsIncomingWebHookUrl);
         } else if (element.ProductName == "Security Hub") {
           // Security Hub のコントロールの通知は多いので何もしない。
           console.log("PASS : Product name is Security Hub.");
         } else {
-          // GuardDuty 以外の場合
-
-          // ASFF Required attributes
-          // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html
-          const awsAccountId = element.AwsAccountId;
-          const title = element.Title;
-          const severity = element.Severity.Label;
-          const types = element.Types.join(", ");
-          const description = element.Description;
-
-          // Optional top-level attributes
-          // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html
-          const region = element.Region ?? "";
-          const sourceUrl = element.SourceUrl ?? "";
-          const productName = element.ProductName ?? "";
-
-          // title, message を組み立てる
-          teamsTitle = `${productName} | ${awsAccountId} | ${region} | ${title}`;
-          teamsMessage = `**Severity** : ${severity}<br/>
-            **Types** : ${types}<br/>
-            **Description** : ${description}<br/>
-            ${sourceUrl}<br/>
-            **event-id** : ${eventId}`;
-
-          // メッセージ送信する。
-          await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+          // 残りの場合
+          await postGeneralSecurityHubMessage(
+            eventId,
+            element,
+            teamsIncomingWebHookUrl
+          );
         }
       }
     } else if (
+      // aws.devops-guru
       originalEvent.source == "aws.devops-guru" &&
       originalEvent["detail-type"] == "DevOps Guru New Insight Open"
     ) {
       // DevOps Guru の場合
+      // DevOps Guru用のIncoming Web Hook URL を取得する
       const teamsIncomingWebHookUrl = findIncomingWebHookUrl(
         originalEvent.account,
         EVENT_NOTIFICATION_TARGET_DEVOPS_GURU
       );
-
-      const eventId = originalEvent.id;
-
-      const awsAccountId = originalEvent.account;
-      const severity = originalEvent.detail.insightSeverity.toUpperCase();
-      const description = originalEvent.detail.insightDescription;
-      const region = originalEvent.region;
-      const sourceUrl = originalEvent.detail.insightUrl;
-
-      // title, message を組み立てる
-      teamsTitle = `DevOps Guru | ${awsAccountId} | ${region} | ${description}`;
-      teamsMessage = `**Severity** : ${severity}<br/>
-        ${sourceUrl}<br/>
-        **event-id** : ${eventId}`;
-
-      // メッセージ送信する。
-      await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+      await postDevOpsGuruMessage(originalEvent, teamsIncomingWebHookUrl);
+    } else if (
+      // aws.health
+      originalEvent.source == "aws.health" &&
+      originalEvent["detail-type"] == "AWS Health Event"
+    ) {
+      // AWS Health (アカウント固有イベント) の場合
+      // Security Hub用のIncoming Web Hook URL を取得する
+      const teamsIncomingWebHookUrl = findIncomingWebHookUrl(
+        originalEvent.account,
+        EVENT_NOTIFICATION_TARGET_SECURITY_HUB
+      );
+      await postAwsHealthAccountSpecificEventMessage(
+        originalEvent,
+        teamsIncomingWebHookUrl
+      );
+    } else {
+      console.log("PASS : NO MATCH");
     }
   } catch (e) {
     console.error(e);
@@ -203,4 +137,152 @@ const postMessage = async (
   );
   console.log("STATUS CODE: ", res.status);
   if (res.status != 200) throw new Error("STATUS CODE IS " + res.status);
+};
+
+const postGuardDutyMessage = async (
+  eventId,
+  element,
+  teamsIncomingWebHookUrl
+) => {
+  // ASFF Required attributes
+  // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html
+  const awsAccountId = element.AwsAccountId;
+  const title = element.Title;
+  const severity = element.Severity.Label;
+  const types = element.Types.join(", ");
+  const description = element.Description;
+
+  // Optional top-level attributes
+  // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html
+  const region = element.Region ?? "";
+  const sourceUrl = element.SourceUrl ?? "";
+
+  // title, message を組み立てる
+  const teamsTitle = `GuardDuty | ${awsAccountId} | ${region} | ${title}`;
+  const teamsMessage = `**Severity** : ${severity}<br/>
+            **Types** : ${types}<br/>
+            **Description** : ${description}<br/>
+            ${sourceUrl}<br/>
+            **event-id** : ${eventId}`;
+
+  // メッセージ送信する。
+  await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+};
+
+const postConfigMessage = async (eventId, element, teamsIncomingWebHookUrl) => {
+  // ASFF Required attributes
+  // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html
+  const awsAccountId = element.AwsAccountId;
+  const title = element.Title;
+  const severity = element.Severity.Label;
+  const types = element.Types.join(", ");
+  const description = element.Description;
+
+  // Optional top-level attributes
+  // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html
+  const region = element.Region ?? "";
+  // const sourceUrl = element.SourceUrl ?? "";
+  const productName = element.ProductName ?? "";
+  const configRuleName = element.ProductFields["aws/config/ConfigRuleName"];
+  const sourceUrl = `https://${region}.console.aws.amazon.com/config/home?region=${region}#/rules/details?configRuleName=${configRuleName}`;
+
+  // title, message を組み立てる
+  const teamsTitle = `${productName} | ${awsAccountId} | ${region} | ${title}`;
+  const teamsMessage = `**Severity** : ${severity}<br/>
+            **Types** : ${types}<br/>
+            **Description** : ${description}<br/>
+            ${sourceUrl}<br/>
+            **event-id** : ${eventId}`;
+
+  // メッセージ送信する。
+  await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+};
+
+const postGeneralSecurityHubMessage = async (
+  eventId,
+  element,
+  teamsIncomingWebHookUrl
+) => {
+  // ASFF Required attributes
+  // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html
+  const awsAccountId = element.AwsAccountId;
+  const title = element.Title;
+  const severity = element.Severity.Label;
+  const types = element.Types.join(", ");
+  const description = element.Description;
+
+  // Optional top-level attributes
+  // https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html
+  const region = element.Region ?? "";
+  const sourceUrl = element.SourceUrl ?? "";
+  const productName = element.ProductName ?? "";
+
+  // title, message を組み立てる
+  const teamsTitle = `${productName} | ${awsAccountId} | ${region} | ${title}`;
+  const teamsMessage = `**Severity** : ${severity}<br/>
+    **Types** : ${types}<br/>
+    **Description** : ${description}<br/>
+    ${sourceUrl}<br/>
+    **event-id** : ${eventId}`;
+
+  // メッセージ送信する。
+  await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+};
+
+const postDevOpsGuruMessage = async (
+  originalEvent,
+  teamsIncomingWebHookUrl
+) => {
+  const eventId = originalEvent.id;
+
+  const awsAccountId = originalEvent.account;
+  const severity = originalEvent.detail.insightSeverity.toUpperCase();
+  const description = originalEvent.detail.insightDescription;
+  const region = originalEvent.region;
+  const sourceUrl = originalEvent.detail.insightUrl;
+
+  // title, message を組み立てる
+  const teamsTitle = `DevOps Guru | ${awsAccountId} | ${region} | ${description}`;
+  const teamsMessage = `**Severity** : ${severity}<br/>
+    ${sourceUrl}<br/>
+    **event-id** : ${eventId}`;
+
+  // メッセージ送信する。
+  await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+};
+
+const postAwsHealthAccountSpecificEventMessage = async (
+  originalEvent,
+  teamsIncomingWebHookUrl
+) => {
+  const eventId = originalEvent.id;
+
+  const awsAccountId = originalEvent.account;
+  // const severity = originalEvent.detail.insightSeverity.toUpperCase();
+  // const description = originalEvent.detail.insightDescription;
+  const region = originalEvent.region;
+
+  const service = originalEvent.detail.service;
+  const eventTypeCode = originalEvent.detail.eventTypeCode;
+  const eventTypeCategory = originalEvent.detail.eventTypeCategory;
+  const startTime = originalEvent.detail.startTime;
+  const endTime = originalEvent.detail.endTime;
+  const latestDescription =
+    originalEvent.detail.eventDescription[0]?.latestDescription;
+
+  const eventArn = originalEvent.detail.eventArn;
+  const sourceUrl = `https://health.aws.amazon.com/health/home#/account/event-log?eventID=${eventArn}&eventTab=details`;
+
+  // title, message を組み立てる
+  const teamsTitle = `Health | ${awsAccountId} | ${region} | ${eventTypeCode}`;
+  const teamsMessage = `**Service** : ${service}<br/>
+    **Category** : ${eventTypeCategory}<br/>
+    **Start** : ${startTime}<br/>
+    **End** : ${endTime}<br/>
+    **Latest Description** : ${latestDescription}<br/>
+    ${sourceUrl}<br/>
+    **event-id** : ${eventId}`;
+
+  // メッセージ送信する。
+  await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
 };
