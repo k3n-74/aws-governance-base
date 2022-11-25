@@ -168,6 +168,10 @@ export class EventNotificationFeature {
                 ParameterValue:
                   C.i.notificationEventPatternSourceList.join(", "),
               },
+              {
+                ParameterKey: "CmkAliasName",
+                ParameterValue: C.i.general.CmkAliasName,
+              },
             ],
           },
         ],

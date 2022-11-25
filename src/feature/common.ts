@@ -27,6 +27,12 @@ export class CommonFeature {
         {
           templateName: "cfn-assets-storage",
           templateFilePath: `${__dirname}/../../cfn/common/cfn-assets-storage.yaml`,
+          parameters: [
+            {
+              ParameterKey: "CmkAliasName",
+              ParameterValue: C.i.general.CmkAliasName,
+            },
+          ],
         },
       ],
     });

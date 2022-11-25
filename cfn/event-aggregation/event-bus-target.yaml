@@ -19,6 +19,10 @@ Parameters:
     Type: "CommaDelimitedList"
     Default: ""
 
+  CmkAliasName:
+    Description: "CMK Alias Name"
+    Type: "String"
+
 Resources: 
 
   ### 他AWSアカウントのイベントルールからイベントを受け取るためのポリシー
@@ -43,6 +47,7 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/events/${AppName}---notification-event-log"
       RetentionInDays: 400
+      KmsKeyId: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${CmkAliasName}"
 
   EventBridgeToNotificationEventLogGroup:
     Type: AWS::Logs::ResourcePolicy
