@@ -45,6 +45,14 @@ export class EventNotificationFeature {
     // セットアップ対象外の機能だったら何もしないで終了
     if (!isSetupTargetFeature(this.featureNameList)) return;
 
+    // 全AWSアカウントのリストを作成する
+    // GuestアカウントのリストからAWS Account IDだけのリストを作成する
+    const allAwsAccountIds: string[] = C.i.structure.Guests.map((account) => {
+      return account.id;
+    });
+    allAwsAccountIds.push(C.i.structure.Jump.id);
+    allAwsAccountIds.push(C.i.structure.Audit.id);
+
     const isfeatureFastDeployAlartNotificatorFunc =
       this.FEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC ==
       C.i.commandOptions.feature
@@ -176,6 +184,27 @@ export class EventNotificationFeature {
           },
         ],
       });
+
+      // All AWS Account
+      for (const awsAccountId of allAwsAccountIds) {
+        // 全AWSアカウントにスタックをデプロイ
+        await deploy({
+          awsAccountId: awsAccountId,
+          region: C.i.general.BaseRegion,
+          stacks: [
+            {
+              templateName: "event-notification-assume-role-target",
+              templateFilePath: `${__dirname}/../../cfn/event-notification/event-notification-assume-role-target.yaml`,
+              parameters: [
+                {
+                  ParameterKey: "AuditAwsAccountId",
+                  ParameterValue: C.i.structure.Audit.id,
+                },
+              ],
+            },
+          ],
+        });
+      }
     }
   };
 

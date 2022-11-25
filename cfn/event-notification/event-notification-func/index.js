@@ -1,5 +1,6 @@
-// const AWS = require("aws-sdk")
 const axios = require("axios");
+const sts = require("@aws-sdk/client-sts");
+const iam = require("@aws-sdk/client-iam");
 
 exports.handler = async (event, context) => {
   // オリジナルのイベントデータを取得する
@@ -7,6 +8,9 @@ exports.handler = async (event, context) => {
   try {
     console.log("EVENT:");
     console.log(JSON.stringify(event));
+
+    console.log("CONTEXT:");
+    console.log(JSON.stringify(context));
 
     const snsEvent = JSON.parse(event.Records[0].body);
     console.log("SNS EVENT:");
@@ -102,6 +106,41 @@ exports.handler = async (event, context) => {
   }
 };
 
+const getAssumeRoledCredentials = async (awsAccountId) => {
+  const stsClient = new sts.STSClient({ region: process.env.AWS_REGION });
+  // エイリアスを取得したいアカウントに assume role する
+  const assumeRoleCommandOutput = await stsClient.send(
+    new sts.AssumeRoleCommand({
+      DurationSeconds: 3600,
+      RoleArn: `arn:aws:iam::${awsAccountId}:role/${process.env.GOV_BASE__APP_NAME}---assume-role-from-event-notification-func`,
+      RoleSessionName: "event-notification-func",
+    })
+  );
+  console.log(
+    "ACCESS KEY ID:",
+    assumeRoleCommandOutput.Credentials.AccessKeyId
+  );
+
+  const roleCreds = {
+    accessKeyId: assumeRoleCommandOutput.Credentials.AccessKeyId,
+    secretAccessKey: assumeRoleCommandOutput.Credentials.SecretAccessKey,
+    sessionToken: assumeRoleCommandOutput.Credentials.SessionToken,
+  };
+
+  return roleCreds;
+};
+
+const getAwsAccountAlias = async (credentials) => {
+  const iamClient = new iam.IAMClient({
+    credentials: credentials,
+    region: process.env.AWS_REGION,
+  });
+  const listAccountAliasesCommandOutput = await iamClient.send(
+    new iam.ListAccountAliasesCommand({ MaxItems: 1 })
+  );
+  return listAccountAliasesCommandOutput.AccountAliases?.[0];
+};
+
 const findIncomingWebHookUrl = (
   awsAccountId,
   eventNotificationTargetDictionary
@@ -157,9 +196,13 @@ const postGuardDutyMessage = async (
   const region = element.Region ?? "";
   const sourceUrl = element.SourceUrl ?? "";
 
+  const roleCreds = await getAssumeRoledCredentials(awsAccountId);
+  const awsAccountAlias = (await getAwsAccountAlias(roleCreds)) ?? awsAccountId;
+
   // title, message を組み立てる
-  const teamsTitle = `GuardDuty | ${awsAccountId} | ${region} | ${title}`;
-  const teamsMessage = `**Severity** : ${severity}<br/>
+  const teamsTitle = `GuardDuty | ${awsAccountAlias} | ${region} | ${title}`;
+  const teamsMessage = `**AWS Account ID** : ${awsAccountId}<br/>
+            **Severity** : ${severity}<br/>
             **Types** : ${types}<br/>
             **Description** : ${description}<br/>
             ${sourceUrl}<br/>
@@ -186,9 +229,13 @@ const postConfigMessage = async (eventId, element, teamsIncomingWebHookUrl) => {
   const configRuleName = element.ProductFields["aws/config/ConfigRuleName"];
   const sourceUrl = `https://${region}.console.aws.amazon.com/config/home?region=${region}#/rules/details?configRuleName=${configRuleName}`;
 
+  const roleCreds = await getAssumeRoledCredentials(awsAccountId);
+  const awsAccountAlias = (await getAwsAccountAlias(roleCreds)) ?? awsAccountId;
+
   // title, message を組み立てる
-  const teamsTitle = `${productName} | ${awsAccountId} | ${region} | ${title}`;
-  const teamsMessage = `**Severity** : ${severity}<br/>
+  const teamsTitle = `${productName} | ${awsAccountAlias} | ${region} | ${title}`;
+  const teamsMessage = `**AWS Account ID** : ${awsAccountId}<br/>
+            **Severity** : ${severity}<br/>
             **Types** : ${types}<br/>
             **Description** : ${description}<br/>
             ${sourceUrl}<br/>
@@ -217,9 +264,13 @@ const postGeneralSecurityHubMessage = async (
   const sourceUrl = element.SourceUrl ?? "";
   const productName = element.ProductName ?? "";
 
+  const roleCreds = await getAssumeRoledCredentials(awsAccountId);
+  const awsAccountAlias = (await getAwsAccountAlias(roleCreds)) ?? awsAccountId;
+
   // title, message を組み立てる
-  const teamsTitle = `${productName} | ${awsAccountId} | ${region} | ${title}`;
-  const teamsMessage = `**Severity** : ${severity}<br/>
+  const teamsTitle = `${productName} | ${awsAccountAlias} | ${region} | ${title}`;
+  const teamsMessage = `**AWS Account ID** : ${awsAccountId}<br/>
+    **Severity** : ${severity}<br/>
     **Types** : ${types}<br/>
     **Description** : ${description}<br/>
     ${sourceUrl}<br/>
@@ -241,9 +292,13 @@ const postDevOpsGuruMessage = async (
   const region = originalEvent.region;
   const sourceUrl = originalEvent.detail.insightUrl;
 
+  const roleCreds = await getAssumeRoledCredentials(awsAccountId);
+  const awsAccountAlias = (await getAwsAccountAlias(roleCreds)) ?? awsAccountId;
+
   // title, message を組み立てる
-  const teamsTitle = `DevOps Guru | ${awsAccountId} | ${region} | ${description}`;
-  const teamsMessage = `**Severity** : ${severity}<br/>
+  const teamsTitle = `DevOps Guru | ${awsAccountAlias} | ${region} | ${description}`;
+  const teamsMessage = `**AWS Account ID** : ${awsAccountId}<br/>
+    **Severity** : ${severity}<br/>
     ${sourceUrl}<br/>
     **event-id** : ${eventId}`;
 
@@ -273,9 +328,13 @@ const postAwsHealthAccountSpecificEventMessage = async (
   const eventArn = originalEvent.detail.eventArn;
   const sourceUrl = `https://health.aws.amazon.com/health/home#/account/event-log?eventID=${eventArn}&eventTab=details`;
 
+  const roleCreds = await getAssumeRoledCredentials(awsAccountId);
+  const awsAccountAlias = (await getAwsAccountAlias(roleCreds)) ?? awsAccountId;
+
   // title, message を組み立てる
-  const teamsTitle = `Health | ${awsAccountId} | ${region} | ${eventTypeCode}`;
-  const teamsMessage = `**Service** : ${service}<br/>
+  const teamsTitle = `Health | ${awsAccountAlias} | ${region} | ${eventTypeCode}`;
+  const teamsMessage = `**AWS Account ID** : ${awsAccountId}<br/>
+    **Service** : ${service}<br/>
     **Category** : ${eventTypeCategory}<br/>
     **Start** : ${startTime}<br/>
     **End** : ${endTime}<br/>

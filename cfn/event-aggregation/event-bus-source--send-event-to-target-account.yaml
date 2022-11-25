@@ -36,7 +36,7 @@ Resources:
                 - "events.amazonaws.com"
             Action:
               - "sts:AssumeRole"
-      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/gov-base---permissions-boundary-for-role"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
 
   # 上のロールのStatementに含めるとエラーになるので外出しのPolicyにした。
   # https://qiita.com/sot528/items/2263fab0dbb55d6ce032
