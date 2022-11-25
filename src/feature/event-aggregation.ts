@@ -47,6 +47,10 @@ export class EventAggregationFeature {
               ParameterKey: "NotificationEventPatternSourceList",
               ParameterValue: C.i.notificationEventPatternSourceList.join(", "),
             },
+            {
+              ParameterKey: "CmkAliasName",
+              ParameterValue: C.i.general.CmkAliasName,
+            },
           ],
         },
       ],

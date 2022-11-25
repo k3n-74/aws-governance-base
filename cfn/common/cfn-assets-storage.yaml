@@ -9,6 +9,10 @@ Parameters:
     Type: "String"
     Default: "gov-base"
 
+  CmkAliasName:
+    Description: "CMK Alias Name"
+    Type: "String"
+
 Resources:
 
   CfnAssetsBucket:
@@ -22,7 +26,9 @@ Resources:
         RestrictPublicBuckets: true
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: "AES256"
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: "aws:kms"
+              KMSMasterKeyID: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${CmkAliasName}"
       VersioningConfiguration:
         Status: "Enabled"

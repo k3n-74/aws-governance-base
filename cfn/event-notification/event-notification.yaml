@@ -30,6 +30,10 @@ Parameters:
     Type: "CommaDelimitedList"
     Default: ""
 
+  CmkAliasName:
+    Description: "CMK Alias Name"
+    Type: "String"
+
 Resources: 
 
   ################################
@@ -148,6 +152,7 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AppName}---event-notification"
       RetentionInDays: 400
+      KmsKeyId: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${CmkAliasName}"
 
   EventNotificationFuncRole:
     Type: AWS::IAM::Role
