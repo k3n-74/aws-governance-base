@@ -1,6 +1,7 @@
 const axios = require("axios");
 const sts = require("@aws-sdk/client-sts");
 const iam = require("@aws-sdk/client-iam");
+const cloudwatch = require("@aws-sdk/client-cloudwatch");
 
 exports.handler = async (event, context) => {
   // オリジナルのイベントデータを取得する
@@ -139,6 +140,66 @@ const getAwsAccountAlias = async (credentials) => {
     new iam.ListAccountAliasesCommand({ MaxItems: 1 })
   );
   return listAccountAliasesCommandOutput.AccountAliases?.[0];
+};
+
+const createMetricPart = async (credentials, region, dataIdentifiers) => {
+  const cloudwatchClient = new cloudwatch.CloudWatchClient({
+    credentials: credentials,
+    region: region,
+  });
+
+  let metricPart = "";
+
+  const namespace = dataIdentifiers.namespace;
+  const name = dataIdentifiers.name;
+  const stat = dataIdentifiers.stat;
+  const period = parseInt(dataIdentifiers.period);
+
+  metricPart += `**Namespace** : ${namespace}<br/>`;
+
+  const metrics = [];
+  metrics.push(namespace);
+  metrics.push(name);
+  if (dataIdentifiers.dimensions.length > 0)
+    metricPart += `**Dimensions** :<br/>`;
+  for (const dim of dataIdentifiers.dimensions) {
+    metrics.push(dim.name);
+    metrics.push(dim.value);
+    metricPart += `&nbsp;&nbsp;${dim.name} : ${dim.value}<br/>`;
+  }
+
+  metricPart += `**Stat** : ${stat}<br/>`;
+
+  const metricWidget = {
+    view: "timeSeries",
+    stacked: false,
+    metrics: [metrics],
+    width: 480,
+    height: 180,
+    start: "-PT2H",
+    end: "P0D",
+    timezone: "+0900",
+    period: period,
+    stat: stat,
+  };
+
+  console.log(JSON.stringify(metricWidget));
+
+  const getMetricWidgetImageCommandOutput = await cloudwatchClient.send(
+    new cloudwatch.GetMetricWidgetImageCommand({
+      OutputFormat: "png",
+      MetricWidget: JSON.stringify(metricWidget),
+    })
+  );
+
+  const uint8ArrayImageData =
+    getMetricWidgetImageCommandOutput.MetricWidgetImage;
+  const base64EncodedImageData =
+    Buffer.from(uint8ArrayImageData).toString("base64");
+
+  metricPart += `![Chart](data:image/png;base64,${base64EncodedImageData})`;
+
+  return metricPart;
 };
 
 const findIncomingWebHookUrl = (
@@ -286,10 +347,10 @@ const postDevOpsGuruMessage = async (
 ) => {
   const eventId = originalEvent.id;
 
-  const awsAccountId = originalEvent.account;
+  const awsAccountId = originalEvent.detail.accountId;
   const severity = originalEvent.detail.insightSeverity.toUpperCase();
   const description = originalEvent.detail.insightDescription;
-  const region = originalEvent.region;
+  const region = originalEvent.detail.region;
   const sourceUrl = originalEvent.detail.insightUrl;
 
   const roleCreds = await getAssumeRoledCredentials(awsAccountId);
@@ -297,10 +358,31 @@ const postDevOpsGuruMessage = async (
 
   // title, message を組み立てる
   const teamsTitle = `DevOps Guru | ${awsAccountAlias} | ${region} | ${description}`;
-  const teamsMessage = `**AWS Account ID** : ${awsAccountId}<br/>
+  const teamsMessageFirstPart = `**AWS Account ID** : ${awsAccountId}<br/>
     **Severity** : ${severity}<br/>
-    ${sourceUrl}<br/>
-    **event-id** : ${eventId}`;
+    ${sourceUrl}<br/>`;
+  const teamsMessageLastPart = `**event-id** : ${eventId}`;
+
+  let teamsMessageMetricsPart =
+    "**< Aggregated metrics > -------------------**<br/>";
+  // https://docs.aws.amazon.com/devops-guru/latest/userguide/working-with-eventbridge.html
+  for (const anomaly of originalEvent.detail.anomalies) {
+    for (const sourceDetail of anomaly.sourceDetails) {
+      if (sourceDetail.dataSource == "CW_METRICS") {
+        const metricPart = await createMetricPart(
+          roleCreds,
+          region,
+          sourceDetail.dataIdentifiers
+        );
+        // console.log("INLINE IMAGE CHART:");
+        // console.log(inlineImageChart);
+        teamsMessageMetricsPart += `${metricPart}<br/>`;
+      }
+    }
+  }
+
+  const teamsMessage =
+    teamsMessageFirstPart + teamsMessageMetricsPart + teamsMessageLastPart;
 
   // メッセージ送信する。
   await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
