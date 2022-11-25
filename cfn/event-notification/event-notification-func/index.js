@@ -78,6 +78,21 @@ exports.handler = async (event, context) => {
         EVENT_NOTIFICATION_TARGET_DEVOPS_GURU
       );
       await postDevOpsGuruMessage(originalEvent, teamsIncomingWebHookUrl);
+    } else if (
+      // aws.health
+      originalEvent.source == "aws.health" &&
+      originalEvent["detail-type"] == "AWS Health Event"
+    ) {
+      // AWS Health (アカウント固有イベント) の場合
+      // Security Hub用のIncoming Web Hook URL を取得する
+      const teamsIncomingWebHookUrl = findIncomingWebHookUrl(
+        originalEvent.account,
+        EVENT_NOTIFICATION_TARGET_SECURITY_HUB
+      );
+      await postAwsHealthAccountSpecificEventMessage(
+        originalEvent,
+        teamsIncomingWebHookUrl
+      );
     } else {
       console.log("PASS : NO MATCH");
     }
@@ -229,6 +244,42 @@ const postDevOpsGuruMessage = async (
   // title, message を組み立てる
   const teamsTitle = `DevOps Guru | ${awsAccountId} | ${region} | ${description}`;
   const teamsMessage = `**Severity** : ${severity}<br/>
+    ${sourceUrl}<br/>
+    **event-id** : ${eventId}`;
+
+  // メッセージ送信する。
+  await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+};
+
+const postAwsHealthAccountSpecificEventMessage = async (
+  originalEvent,
+  teamsIncomingWebHookUrl
+) => {
+  const eventId = originalEvent.id;
+
+  const awsAccountId = originalEvent.account;
+  // const severity = originalEvent.detail.insightSeverity.toUpperCase();
+  // const description = originalEvent.detail.insightDescription;
+  const region = originalEvent.region;
+
+  const service = originalEvent.detail.service;
+  const eventTypeCode = originalEvent.detail.eventTypeCode;
+  const eventTypeCategory = originalEvent.detail.eventTypeCategory;
+  const startTime = originalEvent.detail.startTime;
+  const endTime = originalEvent.detail.endTime;
+  const latestDescription =
+    originalEvent.detail.eventDescription[0]?.latestDescription;
+
+  const eventArn = originalEvent.detail.eventArn;
+  const sourceUrl = `https://health.aws.amazon.com/health/home#/account/event-log?eventID=${eventArn}&eventTab=details`;
+
+  // title, message を組み立てる
+  const teamsTitle = `Health | ${awsAccountId} | ${region} | ${eventTypeCode}`;
+  const teamsMessage = `**Service** : ${service}<br/>
+    **Category** : ${eventTypeCategory}<br/>
+    **Start** : ${startTime}<br/>
+    **End** : ${endTime}<br/>
+    **Latest Description** : ${latestDescription}<br/>
     ${sourceUrl}<br/>
     **event-id** : ${eventId}`;
 
