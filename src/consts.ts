@@ -7,6 +7,7 @@ export type CommandOptions = {
   keyPolicyFile: string | undefined;
   keyAliasName: string | undefined;
   isDryRun: boolean;
+  isLambdaDisablePublishToAlias: boolean;
 };
 
 export type General = {

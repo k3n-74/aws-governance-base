@@ -70,6 +70,13 @@ const main = async () => {
             type: "string",
             require: false,
           },
+          "lambda-disable-publish-to-alias": {
+            describe:
+              "Lambda Versionの発行を停止することによってAliasに紐づくVersionを変更しない",
+            type: "boolean",
+            require: false,
+            default: false,
+          },
           debug: {
             describe: "デバッグモード",
             type: "boolean",
@@ -162,6 +169,10 @@ const main = async () => {
 
     const isDryRun: boolean = args["dry-run"] as boolean;
 
+    const isLambdaDisablePublishToAlias: boolean = args[
+      "lambda-disable-publish-to-alias"
+    ] as boolean;
+
     logger.debug(args);
 
     // exit(0);
@@ -183,6 +194,7 @@ const main = async () => {
         keyPolicyFile: keyPolicyFile,
         keyAliasName: keyAliasName,
         isDryRun: isDryRun,
+        isLambdaDisablePublishToAlias: isLambdaDisablePublishToAlias,
       },
     });
 

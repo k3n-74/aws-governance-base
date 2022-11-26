@@ -25,6 +25,13 @@ Parameters:
     Description: "Lambda zip"
     Type: "String"
 
+  # 本テンプレート内で利用していないパラメータであるが、
+  # aws-gov-baseのLambda Versionの発行を停止させる機能で
+  # 前回デプロイ時のSHA256 Digestの値を取得する必要があるため存在している。
+  LambdaSha256Digest:
+    Description: "Lambda SHA256 Digest"
+    Type: "String"
+
   NotificationEventPatternSourceList:
     Description: "comma delimited notification event source list."
     Type: "CommaDelimitedList"
@@ -116,7 +123,7 @@ Resources:
   EventNotificationEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      FunctionName: !Ref EventNotificationFunc
+      FunctionName: !Ref EventNotificationFuncAlias
       EventSourceArn: !GetAtt EventNotificationQueue.Arn
       BatchSize: 1
       Enabled: True
@@ -124,6 +131,24 @@ Resources:
   ##########################
   # Lambda Function
   ##########################
+
+  EventNotificationFuncAlias:
+    Type: AWS::Lambda::Alias
+    Properties: 
+      Name: "prod"
+      FunctionName: !GetAtt EventNotificationFunc.Arn
+      FunctionVersion: !GetAtt EventNotificationFuncVersionREPLACEREPLACEXXXLambdaSha256DigestXXXREPLACEREPLACE.Version
+
+  # Lambda関数に変更があったときにバージョン発行するために、
+  # REPLACEREPLACEXXXLambdaSha256DigestXXXREPLACEREPLACEはデプロイ直前に文字列置換する
+  EventNotificationFuncVersionREPLACEREPLACEXXXLambdaSha256DigestXXXREPLACEREPLACE:
+    Type: AWS::Lambda::Version
+    # DeletionPolicy: Retain
+    Metadata:
+      # cfn-lintの警告を止めるためにLambdaSha256Digestを参照している。
+      LambdaSha256Digest : !Ref LambdaSha256Digest
+    Properties: 
+      FunctionName: !GetAtt EventNotificationFunc.Arn
 
   EventNotificationFunc:
     Type: AWS::Lambda::Function

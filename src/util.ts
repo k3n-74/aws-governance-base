@@ -88,11 +88,18 @@ export const isSetupTargetRegion = (region: string): boolean => {
   }
 };
 
+export type ReplaceInfo = {
+  subStr: string;
+  newStr: string;
+};
+
 export type Stack = {
   templateName: string;
   templateFilePath: string;
   parameters?: cfn.Parameter[];
+  replaceTemplateContent?: ReplaceInfo[];
 };
+
 export type DeployFuncInput = {
   awsAccountId: string;
   region: string;
@@ -104,6 +111,39 @@ export const createAwsAccountIdAndRegionStringWithPad = (args: {
   region: string;
 }): string => {
   return `${args.awsAccountId}  ${args.region}`.padEnd(32, " ");
+};
+
+export const getCfnStackParameter = async (
+  awsAccountId: string,
+  region: string,
+  stackName: string,
+  parameterKey: string
+): Promise<string> => {
+  const credentials = await getSsoCredential(awsAccountId);
+  const cfnClient = new cfn.CloudFormationClient({
+    credentials: credentials,
+    region: region,
+  });
+
+  const describeStacksCommandOutput = await cfnClient.send(
+    new cfn.DescribeStacksCommand({
+      StackName: stackName,
+    })
+  );
+
+  let parameterValue = undefined;
+
+  for (const param of describeStacksCommandOutput.Stacks?.[0].Parameters ??
+    []) {
+    if (param.ParameterKey == parameterKey)
+      parameterValue = param.ParameterValue;
+  }
+
+  if (parameterValue == null) {
+    throw new Error(`${parameterKey} key in ${stackName} stack is undefined.`);
+  } else {
+    return parameterValue;
+  }
 };
 
 export const deploy = async (
@@ -147,6 +187,7 @@ export const deploy = async (
           stackName: stackName,
           templateName: stack.templateName,
           templateFilePath: stack.templateFilePath,
+          replaceTemplateContent: stack.replaceTemplateContent,
           parameters: parameters,
           tags: C.i.tags,
         });

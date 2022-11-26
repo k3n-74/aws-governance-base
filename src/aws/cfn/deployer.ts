@@ -28,10 +28,16 @@ export type CreateInstanceFuncInput = {
   credential: CredentialProvider;
 };
 
+export type ReplaceInfo = {
+  subStr: string;
+  newStr: string;
+};
+
 export type DeployFuncInput = {
   stackName: string;
   templateName: string;
   templateFilePath: string;
+  replaceTemplateContent?: ReplaceInfo[];
   parameters: cfn.Parameter[];
   tags: cfn.Tag[];
 };
@@ -82,6 +88,7 @@ export class Deployer {
       changesetInfo = await this.createAndWaitForChangeset(
         deployFuncInput.stackName,
         deployFuncInput.templateFilePath,
+        deployFuncInput.replaceTemplateContent,
         deployFuncInput.parameters,
         deployFuncInput.tags
       );
@@ -114,12 +121,14 @@ export class Deployer {
   private createAndWaitForChangeset = async (
     stackName: string,
     templateFilePath: string,
+    replaceTemplateContent: ReplaceInfo[] | undefined,
     parameters: cfn.Parameter[],
     tags: cfn.Tag[]
   ): Promise<ChangesetInfo> => {
     const ret = await this.createChangeset(
       stackName,
       templateFilePath,
+      replaceTemplateContent,
       parameters,
       tags
     );
@@ -130,6 +139,7 @@ export class Deployer {
   private createChangeset = async (
     stackName: string,
     templateFilePath: string,
+    replaceTemplateContent: ReplaceInfo[] | undefined,
     parameters: cfn.Parameter[],
     tags: cfn.Tag[]
   ): Promise<ChangesetInfo> => {
@@ -145,7 +155,16 @@ export class Deployer {
     }
 
     // CFnテンプレートファイルを読み込む
-    const templateBody = readFileSync(templateFilePath, "utf-8");
+    let templateBody = readFileSync(templateFilePath, "utf-8");
+
+    // CFnテンプレート内の文字列置換をする
+    for (const replaceInfo of replaceTemplateContent ?? []) {
+      templateBody = this.replaceAll({
+        str: templateBody,
+        subStr: replaceInfo.subStr,
+        newStr: replaceInfo.newStr,
+      });
+    }
 
     const createChangeSetCommandInput: cfn.CreateChangeSetCommandInput = {
       Capabilities: ["CAPABILITY_NAMED_IAM"],
@@ -302,5 +321,16 @@ export class Deployer {
         updateTerminationProtectionCommandInput
       )
     );
+  };
+
+  private replaceAll = (args: {
+    str: string;
+    subStr: string;
+    newStr: string;
+  }): string => {
+    // 正規表現用のエスケープをする
+    args.subStr = args.subStr.replace(/[/\-\\^$*+?.()|[\]{}]/g, "\\$&");
+    // replaceをgフラグで実行して全置換する
+    return args.str.replace(new RegExp(args.subStr, "g"), args.newStr);
   };
 }

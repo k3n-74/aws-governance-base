@@ -15,6 +15,7 @@ import {
   deploy,
   DeployFuncInput,
   Stack,
+  getCfnStackParameter,
 } from "../util";
 import { logger } from "../logger";
 import ac from "ansi-colors";
@@ -63,6 +64,7 @@ export class EventNotificationFeature {
     // Lambda関数のデプロイ作業をする。
     let lambdaS3Bucket = `${C.i.general.AppName}---cfn-assets---${C.i.general.BaseRegion}-${C.i.structure.Audit.id}`;
     let lambdaS3Key = "";
+    let lambdaSha256DigestAsHex = "";
     // let lambdaS3ObjectVersion: string | undefined = "";
 
     if (
@@ -86,9 +88,13 @@ export class EventNotificationFeature {
       });
 
       // Lambda関数のZIPファイルのハッシュ値を取得
-      const digest = this.generateSha256({ filePath: lambdaZipFileName });
+      const lambdaSha256Digets = this.generateSha256({
+        filePath: lambdaZipFileName,
+      });
+      lambdaSha256DigestAsHex = lambdaSha256Digets.hex;
+      const lambdaSha256DigestAsBase64Url = lambdaSha256Digets.base64url;
       // S3 Object のキーを生成
-      lambdaS3Key = `cfn/event-notification/event-notification-func/func-${digest}.zip`;
+      lambdaS3Key = `cfn/event-notification/event-notification-func/func-${lambdaSha256DigestAsBase64Url}.zip`;
       // S3 Object が存在するかを確認
       const isExistsLambdaZip = await this.isS3ObjectExists({
         s3Client: s3Client,
@@ -142,6 +148,18 @@ export class EventNotificationFeature {
     // もし、--featureオプションでFEATURE_FAST_DEPLOY__ALART_NOTIFICATOR_FUNC が
     // 指定されていなかったらスタックのデプロイをする。
     if (!isfeatureFastDeployAlartNotificatorFunc) {
+      if (C.i.commandOptions.isLambdaDisablePublishToAlias) {
+        // 新たにデプロイしたLambda関数を Lambda Alias に紐づけさせない。
+        // その為に、Lambda Versionの新規発行を止めるために前回セットしたLambdaSha256Digestを取得して
+        // 今回のデプロイでも使用する。
+        lambdaSha256DigestAsHex = await getCfnStackParameter(
+          C.i.structure.Audit.id,
+          C.i.general.BaseRegion,
+          `${C.i.general.AppName}---event-notification`,
+          "LambdaSha256Digest"
+        );
+      }
+
       // Auditアカウントにスタックをデプロイ
       await deploy({
         awsAccountId: C.i.structure.Audit.id,
@@ -150,6 +168,12 @@ export class EventNotificationFeature {
           {
             templateName: "event-notification",
             templateFilePath: `${__dirname}/../../cfn/event-notification/event-notification.yaml`,
+            replaceTemplateContent: [
+              {
+                subStr: "REPLACEREPLACEXXXLambdaSha256DigestXXXREPLACEREPLACE",
+                newStr: lambdaSha256DigestAsHex,
+              },
+            ],
             parameters: [
               {
                 ParameterKey: "EventNotificationTargetSecurityHub",
@@ -170,6 +194,10 @@ export class EventNotificationFeature {
               {
                 ParameterKey: "LambdaS3Key",
                 ParameterValue: lambdaS3Key,
+              },
+              {
+                ParameterKey: "LambdaSha256Digest",
+                ParameterValue: lambdaSha256DigestAsHex,
               },
               {
                 ParameterKey: "NotificationEventPatternSourceList",
@@ -280,14 +308,23 @@ export class EventNotificationFeature {
     });
   };
 
-  private generateSha256 = (args: { filePath: string }): string => {
+  private generateSha256 = (args: {
+    filePath: string;
+  }): { base64: string; base64url: string; hex: string } => {
     const buffer = fs.readFileSync(args.filePath);
     const hash = crypto.createHash("sha256").update(buffer);
+    const base64 = hash.copy().digest("base64");
+    const base64Url = hash.copy().digest("base64url");
+    const hex = hash.copy().digest("hex");
     logger.debug("digest");
-    logger.debug(hash.copy().digest("base64"));
-    logger.debug(hash.copy().digest("base64url"));
-    logger.debug(hash.copy().digest("hex"));
-    return hash.digest("base64url");
+    logger.debug(base64);
+    logger.debug(base64Url);
+    logger.debug(hex);
+    return {
+      base64: base64,
+      base64url: base64Url,
+      hex: hex,
+    };
   };
 
   private isS3ObjectExists = async (args: {
