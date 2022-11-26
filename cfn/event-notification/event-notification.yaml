@@ -142,7 +142,8 @@ Resources:
       TracingConfig:
         Mode: Active
       Architectures: ["arm64"]
-      MemorySize: 256
+      MemorySize: 512
+      Timeout: 60
       PackageType: "Zip"
       Code:
         S3Bucket: !Ref LambdaS3Bucket
