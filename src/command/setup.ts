@@ -49,13 +49,13 @@ export class SetupCommand {
     const iamAccessAnalyzer = new IamAccessAnalyzerFeature();
     await iamAccessAnalyzer.setup();
 
-    // Event Notification
-    const eventNotificationFeature = new EventNotificationFeature();
-    await eventNotificationFeature.setup();
-
     // Event Aggregation
     const eventAggregationFeature = new EventAggregationFeature();
     await eventAggregationFeature.setup();
+
+    // Event Notification
+    const eventNotificationFeature = new EventNotificationFeature();
+    await eventNotificationFeature.setup();
 
     // DevOps Guru
     const devOpsGuruFeature = new DevOpsGuruFeature();

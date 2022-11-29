@@ -52,16 +52,10 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Name: !Sub "${AppName}---subscribe-event-notification"
-      EventBusName: "default"
+      EventBusName: !Sub "${AppName}---aggregated-notification-event"
       State: "ENABLED"
       EventPattern:
         source: !Ref NotificationEventPatternSourceList
-      # EventPattern: |
-      #   {
-      #     "source": [
-      #       "aws.securityhub","aws.devops-guru"
-      #     ]
-      #   }
       Targets:
         - Arn: !Ref EventNotificationTopic
           Id: !Sub "${AppName}---sns-topic-for-guardduty"

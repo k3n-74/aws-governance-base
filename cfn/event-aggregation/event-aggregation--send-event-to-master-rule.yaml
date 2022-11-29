@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-aggregation--send-event-to-master-rule.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  BaseRegion:
+    Description: "Base Region."
+    Type: "String"
+
+  AuditAwsAccountId:
+    Description: "target aws account id."
+    Type: "String"
+
+Conditions:
+  IsBaseRegion: !Equals 
+    - !Ref BaseRegion
+    - !Ref AWS::Region
+
+Resources: 
+
+  ### defaultイベントバスのイベントを集約イベントバスに送信するためのルール
+
+  # Security Hub Event
+  # "aws.securityhub" で統合されるサービス一覧
+  # https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary
+  # Security Hub は全リージョンのイベントを集約してBaseRegionにイベントを流しているので
+  # BaseRegionのみでイベントを拾う。
+  SendSecurityHubEventToBaseRegionRule:
+    Type: AWS::Events::Rule
+    Condition: IsBaseRegion
+    Properties:
+      Name: !Sub "${AppName}---send-security-hub-event-to-master-event-bus"
+      EventBusName: "default"
+      State: "ENABLED"
+      # ここのRoleArnを使うとエラーになる。
+      # CloudFormationのバグによりここのRoleArnは使わないほうが良いっぽい
+      # https://github.com/aws-cloudformation/cloudformation-coverage-roadmap/issues/1110
+      # https://github.com/awsdocs/aws-cloudformation-user-guide/pull/1178
+      # RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${AppName}/${AppName}---send-notification-event-to-master-event-bus"
+      EventPattern:
+        source:
+          - "aws.securityhub"
+      Targets:
+        - Arn: !Sub "arn:aws:events:${BaseRegion}:${AuditAwsAccountId}:event-bus/${AppName}---aggregated-notification-event"
+          Id: !Sub "${AppName}---aggregated-notification-event-bus"
+          RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${AppName}/${AppName}---send-notification-event-to-master-event-bus"
+
+  # Security Hub 以外のイベントは全リージョンで拾う。
+  SendExceptSecurityHubEventToBaseRegionRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---send-except-security-hub-event-to-master-event-bus"
+      EventBusName: "default"
+      State: "ENABLED"
+      # ここのRoleArnを使うとエラーになる。
+      # CloudFormationのバグによりここのRoleArnは使わないほうが良いっぽい
+      # https://github.com/aws-cloudformation/cloudformation-coverage-roadmap/issues/1110
+      # https://github.com/awsdocs/aws-cloudformation-user-guide/pull/1178
+      # RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${AppName}/${AppName}---send-notification-event-to-master-event-bus"
+      EventPattern:
+        source:
+          - "aws.devops-guru"
+          - "aws.health"
+      Targets:
+        - Arn: !Sub "arn:aws:events:${BaseRegion}:${AuditAwsAccountId}:event-bus/${AppName}---aggregated-notification-event"
+          Id: !Sub "${AppName}---aggregated-notification-event-bus"
+          RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${AppName}/${AppName}---send-notification-event-to-master-event-bus"
