@@ -264,3 +264,13 @@ export const hasDuplicateStringElement = (
   const setElements = new Set(elements);
   return setElements.size !== elements.length;
 };
+
+export const indentAllLine = (str: string, indentStr: string): string => {
+  let indented = "";
+  for (const line of str.split("\n")) {
+    indented += indentStr + line + "\n";
+  }
+  // 最後に余計な改行が追加されているので、それを削除する
+  indented = indented.slice(0, indented.length - 1);
+  return indented;
+};

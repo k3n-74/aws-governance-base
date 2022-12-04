@@ -9,13 +9,13 @@ Parameters:
     Type: "String"
     Default: "gov-base"
 
-  EventNotificationTargetSecurityHub:
-    Description: ""
-    Type: "String"
+  # EventNotificationTargetSecurityHub:
+  #   Description: ""
+  #   Type: "String"
 
-  EventNotificationTargetDevOpsGuru:
-    Description: ""
-    Type: "String"
+  # EventNotificationTargetDevOpsGuru:
+  #   Description: ""
+  #   Type: "String"
 
   LambdaS3Bucket:
     Description: "Lambda zip"
@@ -156,8 +156,8 @@ Resources:
       Environment:
         Variables:
           "GOV_BASE__APP_NAME" : !Ref AppName
-          "GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB" : !Ref EventNotificationTargetSecurityHub
-          "GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU" : !Ref EventNotificationTargetDevOpsGuru
+          # "GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB" : !Ref EventNotificationTargetSecurityHub
+          # "GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU" : !Ref EventNotificationTargetDevOpsGuru
       TracingConfig:
         Mode: Active
       Architectures: ["arm64"]
@@ -167,6 +167,8 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaS3Bucket
         S3Key: !Ref LambdaS3Key
+      Layers:
+        - "arn:aws:lambda:ap-northeast-1:980059726660:layer:AWS-AppConfig-Extension-Arm64:15"
 
   EventNotificationFuncLogGroup:
     Type: AWS::Logs::LogGroup
@@ -203,5 +205,11 @@ Resources:
           - Effect: "Allow"
             Action:
               - "sts:AssumeRole"
+            Resource: 
+              - "*"
+          - Effect: "Allow"
+            Action:
+              - "appconfig:StartConfigurationSession"
+              - "appconfig:GetLatestConfiguration"
             Resource: 
               - "*"

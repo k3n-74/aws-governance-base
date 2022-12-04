@@ -27,13 +27,36 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // 環境変数を読み込む
-    const EVENT_NOTIFICATION_TARGET_SECURITY_HUB = JSON.parse(
-      process.env.GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB
-    );
-    const EVENT_NOTIFICATION_TARGET_DEVOPS_GURU = JSON.parse(
-      process.env.GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU
-    );
+    // AppConfigから設定を読み込む
+    let configAppName = "";
+    let configEnvName = "";
+    if (context.functionVersion == "$LATEST") {
+      // LATESTの場合
+      configAppName = `${process.env.GOV_BASE__APP_NAME}---dev--event-notification`;
+      configEnvName = "dev";
+    } else {
+      // prod エイリアスの場合
+      configAppName = `${process.env.GOV_BASE__APP_NAME}---event-notification`;
+      configEnvName = "prod";
+    }
+    const eventNotificationTargetConfig =
+      await getEventNotificationTargetConfig(configAppName, configEnvName);
+
+    console.log(eventNotificationTargetConfig);
+
+    const EVENT_NOTIFICATION_TARGET_SECURITY_HUB =
+      eventNotificationTargetConfig.SecurityHub;
+    const EVENT_NOTIFICATION_TARGET_DEVOPS_GURU =
+      eventNotificationTargetConfig.DevOpsGuru;
+
+    // // 環境変数から通知先設定を読み込む
+    // const EVENT_NOTIFICATION_TARGET_SECURITY_HUB = JSON.parse(
+    //   process.env.GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB
+    // );
+    // const EVENT_NOTIFICATION_TARGET_DEVOPS_GURU = JSON.parse(
+    //   process.env.GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU
+    // );
+
     console.log(EVENT_NOTIFICATION_TARGET_SECURITY_HUB);
     console.log(EVENT_NOTIFICATION_TARGET_DEVOPS_GURU);
 
@@ -426,4 +449,23 @@ const postAwsHealthAccountSpecificEventMessage = async (
 
   // メッセージ送信する。
   await postMessage(teamsTitle, teamsMessage, teamsIncomingWebHookUrl);
+};
+
+const getEventNotificationTargetConfig = async (
+  configAppName,
+  configEnvName
+) => {
+  // AppConfigから設定を取得する
+
+  const url = `http://localhost:2772/applications/${configAppName}/environments/${configEnvName}/configurations/event-notification-target`;
+
+  const res = await axios.get(url, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  console.log("GET APP CONFIG STATUS CODE: ", res.status);
+  if (res.status != 200)
+    throw new Error("Get AppConfig STATUS CODE IS " + res.status);
+  return res.data;
 };

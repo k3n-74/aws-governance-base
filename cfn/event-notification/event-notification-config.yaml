@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-notification-config.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+Resources: 
+
+  # Application
+  DependentApplication:
+    Type: AWS::AppConfig::Application
+    Properties:
+      Name: !Sub "${AppName}---event-notification"
+
+  # Environment
+  Environment:
+    Type: AWS::AppConfig::Environment
+    Properties:
+      ApplicationId: !Ref DependentApplication
+      Name: "prod"
+
+  # Configuration Profile
+  DependentConfigurationProfile:
+    Type: AWS::AppConfig::ConfigurationProfile
+    Properties:
+      ApplicationId: !Ref DependentApplication
+      Name: "event-notification-target"
+      LocationUri: "hosted"
+      Type: "AWS.Freeform"
+
+  BasicHostedConfigurationVersion:
+    Type: AWS::AppConfig::HostedConfigurationVersion
+    Properties:
+      ApplicationId: !Ref DependentApplication
+      ConfigurationProfileId: !Ref DependentConfigurationProfile
+      ContentType: "application/json"
+      Content: REPLACEREPLACEXXX_EventNotificationTarget_XXXREPLACEREPLACE
+
+  # Deployment Strategy
+  QuickDeploymentStrategy:
+    Type: AWS::AppConfig::DeploymentStrategy
+    Properties:
+      Name: !Sub "${AppName}---quick-deployment"
+      DeploymentDurationInMinutes: 0
+      FinalBakeTimeInMinutes: 0
+      GrowthType: LINEAR
+      GrowthFactor: 100
+      ReplicateTo: NONE
+
+  # Configration Profile を Environment にデプロイを実行
+  BasicDeployment:
+    Type: AWS::AppConfig::Deployment
+    Properties:
+      ApplicationId: !Ref DependentApplication
+      EnvironmentId: !Ref Environment
+      DeploymentStrategyId: !Ref QuickDeploymentStrategy
+      ConfigurationProfileId: !Ref DependentConfigurationProfile
+      ConfigurationVersion: !Ref BasicHostedConfigurationVersion

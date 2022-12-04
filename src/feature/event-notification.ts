@@ -16,6 +16,7 @@ import {
   DeployFuncInput,
   Stack,
   getCfnStackParameter,
+  indentAllLine,
 } from "../util";
 import { logger } from "../logger";
 import ac from "ansi-colors";
@@ -160,11 +161,45 @@ export class EventNotificationFeature {
         );
       }
 
+      // Event notification target の置換文字列を生成する
+      const eventNotificationTargetStr =
+        "|\n" +
+        indentAllLine(JSON.stringify(C.i.eventNotificationTarget), "        ");
+
+      const devEventNotificationTargetStr =
+        "|\n" +
+        indentAllLine(
+          JSON.stringify(C.i.devEventNotificationTarget),
+          "        "
+        );
+
       // Auditアカウントにスタックをデプロイ
       await deploy({
         awsAccountId: C.i.structure.Audit.id,
         region: C.i.general.BaseRegion,
         stacks: [
+          {
+            templateName: "dev--event-notification-config",
+            templateFilePath: `${__dirname}/../../cfn/event-notification/event-notification-config--dev.yaml`,
+            replaceTemplateContent: [
+              {
+                subStr:
+                  "REPLACEREPLACEXXX_EventNotificationTarget_XXXREPLACEREPLACE",
+                newStr: devEventNotificationTargetStr,
+              },
+            ],
+          },
+          {
+            templateName: "event-notification-config",
+            templateFilePath: `${__dirname}/../../cfn/event-notification/event-notification-config.yaml`,
+            replaceTemplateContent: [
+              {
+                subStr:
+                  "REPLACEREPLACEXXX_EventNotificationTarget_XXXREPLACEREPLACE",
+                newStr: eventNotificationTargetStr,
+              },
+            ],
+          },
           {
             templateName: "event-notification",
             templateFilePath: `${__dirname}/../../cfn/event-notification/event-notification.yaml`,
@@ -175,18 +210,18 @@ export class EventNotificationFeature {
               },
             ],
             parameters: [
-              {
-                ParameterKey: "EventNotificationTargetSecurityHub",
-                ParameterValue: JSON.stringify(
-                  C.i.eventNotificationTarget.SecurityHub
-                ),
-              },
-              {
-                ParameterKey: "EventNotificationTargetDevOpsGuru",
-                ParameterValue: JSON.stringify(
-                  C.i.eventNotificationTarget.DevOpsGuru
-                ),
-              },
+              // {
+              //   ParameterKey: "EventNotificationTargetSecurityHub",
+              //   ParameterValue: JSON.stringify(
+              //     C.i.eventNotificationTarget.SecurityHub
+              //   ),
+              // },
+              // {
+              //   ParameterKey: "EventNotificationTargetDevOpsGuru",
+              //   ParameterValue: JSON.stringify(
+              //     C.i.eventNotificationTarget.DevOpsGuru
+              //   ),
+              // },
               {
                 ParameterKey: "LambdaS3Bucket",
                 ParameterValue: lambdaS3Bucket,
