@@ -30,10 +30,28 @@ exports.handler = async (event, context) => {
     // AppConfigから設定を読み込む
     let configAppName = "";
     let configEnvName = "";
-    if (context.functionVersion == "$LATEST") {
+
+    // Lambdaバージョンが LATEST かどうか
+    const isLatestFunctionVersion =
+      context.functionVersion == "$LATEST" ? true : false;
+
+    if (isLatestFunctionVersion) {
       // LATESTの場合
       configAppName = `${process.env.GOV_BASE__APP_NAME}---dev--event-notification`;
       configEnvName = "dev";
+
+      // 開発用に投入したイベントソースの場合は、プレフィックスを削除して
+      // 本物のイベントソース名と同じにする。
+      if (
+        originalEvent.source.startsWith(
+          `custom.${process.env.GOV_BASE__APP_NAME}.`
+        )
+      ) {
+        originalEvent.source = originalEvent.source.replace(
+          `custom.${process.env.GOV_BASE__APP_NAME}.`,
+          ""
+        );
+      }
     } else {
       // prod エイリアスの場合
       configAppName = `${process.env.GOV_BASE__APP_NAME}---event-notification`;

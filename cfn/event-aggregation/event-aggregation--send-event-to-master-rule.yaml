@@ -67,6 +67,7 @@ Resources:
         source:
           - "aws.devops-guru"
           - "aws.health"
+          - prefix: !Sub "custom.${AppName}."
       Targets:
         - Arn: !Sub "arn:aws:events:${BaseRegion}:${AuditAwsAccountId}:event-bus/${AppName}---aggregated-notification-event"
           Id: !Sub "${AppName}---aggregated-notification-event-bus"
