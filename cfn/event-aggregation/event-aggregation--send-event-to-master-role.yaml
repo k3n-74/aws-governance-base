@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-aggregation--send-event-to-master-role.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  AuditAwsAccountId:
+    Description: "target aws account id."
+    Type: "String"
+
+Resources: 
+
+  ### ルールがマスターのイベントバスに送信するためのロール
+
+  SendNotificationEventToMasterEventBusRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}---send-notification-event-to-master-event-bus"
+      Path: !Sub "/${AppName}/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
+
+  # 上のロールのStatementに含めるとエラーになるので外出しのPolicyにした。
+  # https://qiita.com/sot528/items/2263fab0dbb55d6ce032
+  SendNotificationEventToMasterEventBusRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AppName}---send-notification-event-to-master-event-bus"
+      Roles:
+        - !Ref SendNotificationEventToMasterEventBusRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "events:PutEvents"
+            Resource: 
+              - !Sub "arn:aws:events:${AWS::Region}:${AuditAwsAccountId}:event-bus/${AppName}---aggregated-notification-event"

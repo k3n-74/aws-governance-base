@@ -41,6 +41,7 @@ export type AwsGovBaseConfig = {
   General: General;
   Structure: Structure;
   EventNotificationTarget: EventNotificationTarget;
+  DevEventNotificationTarget: EventNotificationTarget | undefined;
 };
 
 export type InitFuncInput = {
@@ -54,6 +55,9 @@ export class Consts {
   public readonly general: General;
   public readonly structure: Structure;
   public readonly eventNotificationTarget: EventNotificationTarget;
+  public readonly devEventNotificationTarget:
+    | EventNotificationTarget
+    | undefined;
   public readonly commandOptions: CommandOptions;
   public readonly parameters: cfn.Parameter[];
   public readonly tags: cfn.Tag[];
@@ -67,6 +71,8 @@ export class Consts {
     this.structure = initFuncInput.awsGovBaseConfig.Structure;
     this.eventNotificationTarget =
       initFuncInput.awsGovBaseConfig.EventNotificationTarget;
+    this.devEventNotificationTarget =
+      initFuncInput.awsGovBaseConfig.DevEventNotificationTarget;
     this.commandOptions = initFuncInput.commandOptions;
 
     this.parameters = [

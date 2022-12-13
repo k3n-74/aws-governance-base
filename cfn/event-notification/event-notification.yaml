@@ -9,13 +9,13 @@ Parameters:
     Type: "String"
     Default: "gov-base"
 
-  EventNotificationTargetSecurityHub:
-    Description: ""
-    Type: "String"
+  # EventNotificationTargetSecurityHub:
+  #   Description: ""
+  #   Type: "String"
 
-  EventNotificationTargetDevOpsGuru:
-    Description: ""
-    Type: "String"
+  # EventNotificationTargetDevOpsGuru:
+  #   Description: ""
+  #   Type: "String"
 
   LambdaS3Bucket:
     Description: "Lambda zip"
@@ -52,20 +52,33 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Name: !Sub "${AppName}---subscribe-event-notification"
-      EventBusName: "default"
+      EventBusName: !Sub "${AppName}---aggregated-notification-event"
       State: "ENABLED"
       EventPattern:
         source: !Ref NotificationEventPatternSourceList
-      # EventPattern: |
-      #   {
-      #     "source": [
-      #       "aws.securityhub","aws.devops-guru"
-      #     ]
-      #   }
+        # 再生したイベントは取得しない
+        # https://aws.amazon.com/jp/blogs/compute/archiving-and-replaying-events-with-amazon-eventbridge/
+        "replay-name": 
+          - exists: false
       Targets:
         - Arn: !Ref EventNotificationTopic
           Id: !Sub "${AppName}---sns-topic-for-guardduty"
 
+  DevSubscribeEventNotification:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---subscribe-event-notification--dev"
+      EventBusName: !Sub "${AppName}---aggregated-notification-event"
+      State: "ENABLED"
+      EventPattern:
+      # 全部のイベントを取得する
+        source:
+          - prefix: ""
+      Targets:
+        - Arn: !Ref DevEventNotificationTopic
+          Id: !Sub "${AppName}---sns-topic-for-guardduty--dev"
+
+  # EventBridgeからイベントを受け取るSNS
   EventNotificationTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
@@ -94,6 +107,35 @@ Resources:
       Endpoint: !GetAtt EventNotificationQueue.Arn
       Protocol: "sqs"
 
+  DevEventNotificationTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---event-notification--dev"
+        Statement:
+          - Sid: "eventbridge-to-sns--dev"
+            Effect: Allow
+            Principal: 
+              Service: "events.amazonaws.com"
+            Action: 'sns:Publish'
+            Resource: !Ref DevEventNotificationTopic
+      Topics:
+        - !Ref DevEventNotificationTopic
+
+  DevEventNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AppName}---event-notification--dev"
+
+  DevEventNotificationSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref DevEventNotificationTopic
+      Endpoint: !GetAtt DevEventNotificationQueue.Arn
+      Protocol: "sqs"
+
+  # SNSからメッセージを受け取るSQS
   EventNotificationQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -120,6 +162,34 @@ Resources:
       VisibilityTimeout: 200
       MessageRetentionPeriod: 1209600
 
+  DevEventNotificationQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref DevEventNotificationQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---sns-publish-to-sqs--dev"
+        Statement:
+          - Sid:  "sns-publish-to-sqs--dev"
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - sqs:SendMessage
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub "arn:aws:sns:*:${AWS::AccountId}:*"
+
+  DevEventNotificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      VisibilityTimeout: 200
+      MessageRetentionPeriod: 1209600
+
+
+  # SQS と Lambda の紐づけ
   EventNotificationEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
@@ -127,6 +197,15 @@ Resources:
       EventSourceArn: !GetAtt EventNotificationQueue.Arn
       BatchSize: 1
       Enabled: True
+
+  DevEventNotificationEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !GetAtt EventNotificationFunc.Arn
+      EventSourceArn: !GetAtt DevEventNotificationQueue.Arn
+      BatchSize: 1
+      Enabled: True
+
 
   ##########################
   # Lambda Function
@@ -162,8 +241,8 @@ Resources:
       Environment:
         Variables:
           "GOV_BASE__APP_NAME" : !Ref AppName
-          "GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB" : !Ref EventNotificationTargetSecurityHub
-          "GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU" : !Ref EventNotificationTargetDevOpsGuru
+          # "GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB" : !Ref EventNotificationTargetSecurityHub
+          # "GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU" : !Ref EventNotificationTargetDevOpsGuru
       TracingConfig:
         Mode: Active
       Architectures: ["arm64"]
@@ -173,6 +252,8 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaS3Bucket
         S3Key: !Ref LambdaS3Key
+      Layers:
+        - "arn:aws:lambda:ap-northeast-1:980059726660:layer:AWS-AppConfig-Extension-Arm64:15"
 
   EventNotificationFuncLogGroup:
     Type: AWS::Logs::LogGroup
@@ -209,5 +290,11 @@ Resources:
           - Effect: "Allow"
             Action:
               - "sts:AssumeRole"
+            Resource: 
+              - "*"
+          - Effect: "Allow"
+            Action:
+              - "appconfig:StartConfigurationSession"
+              - "appconfig:GetLatestConfiguration"
             Resource: 
               - "*"
