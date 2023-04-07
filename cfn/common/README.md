@@ -5,7 +5,9 @@
 aws-governance-base をデプロイをするときに必要なアセットをアップロードするための S3 Bucket。  
 現在は Lambda 関数の ZIP ファイルをアップロードする用途でのみ利用している。
 
-## 🚀 デプロイ ターゲット
+## 🚀 CFnテンプレートとデプロイ ターゲット
+
+### 🛸 cfn-assets-storage.yaml  
 
 - Jump
 
