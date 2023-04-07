@@ -6,6 +6,8 @@ AWS Config の自動修復機能の設定。
 
 ## 🚀 CFn テンプレートとデプロイ ターゲット
 
+[デプロイのコード](../../src/feature/auto-remediation.ts)
+
 ### 🛸 vpc-default-security-group-closed.yaml
 
 Config Rule で default セキュリティーグループの問題を検知したら SSM Automation の 「default セキュリティーグループ内のルールを削除するランブック」を起動する。

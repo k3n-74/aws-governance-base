@@ -24,6 +24,8 @@
 
 ## 🚀 CFn テンプレートとデプロイ ターゲット
 
+[デプロイのコード](../../src/feature/jump.ts)
+
 ### 🛸 permissions-boundary.yaml
 
 IAM Role のための permission boundary のための IAM Policy を定義している。

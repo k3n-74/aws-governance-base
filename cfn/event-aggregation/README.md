@@ -6,6 +6,8 @@
 
 ## 🚀 CFn テンプレートとデプロイ ターゲット
 
+[デプロイのコード](../../src/feature/event-aggregation.ts)
+
 ### 🛸 event-aggregation--event-bus.yaml
 
 全 AWS アカウント、全リージョンのイベントを集約するカスタムイベントバスを作成する。

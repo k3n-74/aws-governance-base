@@ -6,6 +6,8 @@ Amazon Detective の設定。
 
 ## 🚀 CFn テンプレートとデプロイ ターゲット
 
+[デプロイのコード](../../src/feature/detective.ts)
+
 ### 🛸 detective.yaml
 
 Amazon Detective を有効化する。

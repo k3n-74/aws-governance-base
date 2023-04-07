@@ -10,6 +10,8 @@
 
 ## 🚀 CFn テンプレートとデプロイ ターゲット
 
+[デプロイのコード](../../src/feature/event-notification.ts)
+
 ### 🛸 event-notification.yaml
 
 下記処理の流れ、リソースを構築。  

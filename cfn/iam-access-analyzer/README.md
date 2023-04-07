@@ -6,6 +6,8 @@ IAM Access Analyzer を有効化する。
 
 ## 🚀 CFn テンプレートとデプロイ ターゲット
 
+[デプロイのコード](../../src/feature/iam-access-analyzer.ts)
+
 ### 🛸 iam-access-analyzer.yaml
 
 **Jump**
