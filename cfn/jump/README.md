@@ -1,16 +1,12 @@
-# Jump アカウント
+# jump
 
 ## 🚀 機能
 
-### 🛸 概要
-
+- jump アカウントにログインし、ターゲットのロールに Switch Role する。
 - AWS Management Console も AWS CLI も MFA を強制する。
 - Permissions Boundary Policy を強制する。  
   例えば「cdk bootstrap により作成される CDK Toolkit が内部的に作成する CFn 実行 Role を利用して IAM:User,IAM:Group, Swith Role の権限を越えた操作をする」といったことも不可能。
 - IAM User の操作ログに記録される role session name は必ず IAM User Name と一致する。
-
-### 🛸 Jump アカウント、Jump アカウント以外でできること
-
 - Jump アカウントでできること
 
   - MFA 未完了の状態でできること
@@ -26,81 +22,125 @@
 - Jump アカウント以外でできること
   - Switch Role 用の Role の権限内の作業
 
-### 🛸 Swith Role 用の Role について
+## 🚀 CFn テンプレートとデプロイ ターゲット
 
-下記２つのロールがある。
+### 🛸 permissions-boundary.yaml
 
-- ExecutionRole
-  > note: Jump アカウントには ExecutionRole リソースを作成しないので Switch Role できない。
-  - Assume Role 受け入れ条件:  
-    Jump アカウントから MFA 済み状態の場合
-  - Policy:  
-    `arn:aws:iam::aws:policy/AdministratorAccess`
-  - Permissions Boundary Policy:  
-    `${AppName}---permissions-boundary-for-role`
-- ReadOnlyRole
-  - Assume Role 受け入れ条件:  
-    Jump アカウントから MFA 済み状態の場合
-  - Policy:  
-    `arn:aws:iam::aws:policy/ReadOnlyAccess`
-  - Permissions Boundary Policy:  
-    `${AppName}---permissions-boundary-for-role`
+IAM Role のための permission boundary のための IAM Policy を定義している。
 
-### 🛸 Permissions Boundary Policy について
+**Jump**
 
-- Policy Name:  
-  `${AppName}---permissions-boundary-for-role`
-- 拒否内容
-  - IAM User の操作。
-  - 本 Permissions Boundary Policy を含まない IAM Role の操作。
-  - 本 Permissions Boundary Policy の操作。
-  - Permissions Boundary が付与された IAM User, IAM Role から Permissions Boundary を外す。
-  - CloudTrail の下記操作
-    - "cloudtrail:DeleteTrail"
-    - "cloudtrail:PutEventSelectors"
-    - "cloudtrail:StopLogging"
-    - "cloudtrail:UpdateTrail"
-  - AWS Config の下記操作
-    - "config:DeleteConfigurationRecorder"
-    - "config:DeleteDeliveryChannel"
-    - "config:DeleteRetentionConfiguration"
-    - "config:PutConfigurationRecorder"
-    - "config:PutDeliveryChannel"
-    - "config:PutRetentionConfiguration"
-    - "config:StopConfigurationRecorder"
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|    &check;     |  &nbsp;   |  &nbsp;   |
 
-## 🚀 デプロイ
+**Audit**
 
-### 🛸 Jump アカウントに対するデプロイ作業
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|    &check;     |  &nbsp;   |  &nbsp;   |
 
-```shell
-$ export JUMP_AWS_ACCOUNT_ID="xxxxxx"
+**Gust**
 
-$ # permissions boundary
-$ aws cloudformation deploy --stack-name gov-base---permissions-boundary --template-file ./permissions-boundary.yaml --capabilities CAPABILITY_NAMED_IAM --region ap-northeast-1 --no-fail-on-empty-changeset
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|    &check;     |  &nbsp;   |  &nbsp;   |
 
-$ # group
-$ aws cloudformation deploy --stack-name gov-base---switch-role-users-group --template-file ./switch-role-users-group.yaml --capabilities CAPABILITY_NAMED_IAM --region ap-northeast-1 --no-fail-on-empty-changeset
+### 🛸 switch-role-users-group.yaml
 
-$ # switch role target
-$ aws cloudformation deploy --stack-name gov-base---switch-role-target-role --template-file ./switch-role-target-role.yaml --parameter-overrides JumpAwsAccountId=${JUMP_AWS_ACCOUNT_ID} --capabilities CAPABILITY_NAMED_IAM --region ap-northeast-1 --no-fail-on-empty-changeset
-```
+下記が許可された IAM Group。
 
-### 🛸 Jump アカウント以外に対するデプロイ作業
+- Assume Role (IAM Role に Switch Role するため)
+- 自分のアクセスキー／シークレットキーを管理
+- 自分の仮想 MFA デバイスを管理
 
-```shell
-$ export JUMP_AWS_ACCOUNT_ID="xxxxxx"
+**Jump**
 
-$ # permissions boundary
-$ aws cloudformation deploy --stack-name gov-base---permissions-boundary --template-file ./permissions-boundary.yaml --capabilities CAPABILITY_NAMED_IAM --region ap-northeast-1 --no-fail-on-empty-changeset
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|    &check;     |  &nbsp;   |  &nbsp;   |
 
-$ # switch role target
-$ aws cloudformation deploy --stack-name gov-base---switch-role-target-role --template-file ./switch-role-target-role.yaml --parameter-overrides JumpAwsAccountId=${JUMP_AWS_ACCOUNT_ID} --capabilities CAPABILITY_NAMED_IAM --region ap-northeast-1 --no-fail-on-empty-changeset
-```
+**Audit**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|     &nbsp;     |  &nbsp;   |  &nbsp;   |
+
+**Gust**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|     &nbsp;     |  &nbsp;   |  &nbsp;   |
+
+### 🛸 switch-role-target-role-for-jump.yaml
+
+Jump AWS アカウントに作成する、Switch Role の受け入れ側の IAM Role。
+
+**Jump**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|    &check;     |  &nbsp;   |  &nbsp;   |
+
+**Audit**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|     &nbsp;     |  &nbsp;   |  &nbsp;   |
+
+**Gust**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|     &nbsp;     |  &nbsp;   |  &nbsp;   |
+
+### 🛸 switch-role-target-role-for-audit.yaml
+
+Audit AWS アカウントに作成する、Switch Role の受け入れ側の IAM Role。
+
+**Jump**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|     &nbsp;     |  &nbsp;   |  &nbsp;   |
+
+**Audit**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|    &check;     |  &nbsp;   |  &nbsp;   |
+
+**Gust**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|     &nbsp;     |  &nbsp;   |  &nbsp;   |
+
+### 🛸 switch-role-target-role-for-guest.yaml
+
+Guest AWS アカウントに作成する、Switch Role の受け入れ側の IAM Role。
+
+**Jump**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|     &nbsp;     |  &nbsp;   |  &nbsp;   |
+
+**Audit**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|     &nbsp;     |  &nbsp;   |  &nbsp;   |
+
+**Gust**
+
+| ap-northeast-1 | us-east-1 | 左記 以外 |
+| :------------: | :-------: | :-------: |
+|    &check;     |  &nbsp;   |  &nbsp;   |
 
 ## 🚀 使い方
 
-### 🛸 IAM User を発行
+### 🛸 IAM User を追加
 
 1. IAM User を作成するための管理アカウントで IAM User を作成したときに、そのユーザを必ず IAM:Group `${AppName}---switch-role-users` に所属させること。
 
@@ -110,10 +150,3 @@ $ aws cloudformation deploy --stack-name gov-base---switch-role-target-role --te
 1. AWS Management Console からログアウトして、再度ログインする。  
    ここで 仮想 MFA デバイスによる認証を求められる。
 1. 上記認証が完了したら Switch Role できる。
-
-### 🛸 CDK の利用
-
-Permissions Boundary の適用強制により `cdk bootstrap`を実行してもエラーになる。  
-ここで、例えば root account といった権限が強いユーザで `cdk bootstrap` を実行すると権限が弱いユーザが自分の権限を越えた操作をする抜け道が作成されてしまう。  
-こういったセキュリティ問題を引き起こさない`cdk bootstrap` の実行方法については下記リポジトリを参照。  
-https://github.com/k3n-74/cdk-bootstrap-with-permissions-boundary-and-kms-cmk
