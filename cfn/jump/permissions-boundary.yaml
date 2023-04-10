@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "permissions-boundary.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+  
+Resources: 
+
+  PermissionsBoundaryPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Path: "/"
+      ManagedPolicyName: !Sub "${AppName}---permissions-boundary-for-role"
+      Description: "Policy for IAM Role's Permissions Boundary"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "AdministratorAccess"
+            Effect: "Allow"
+            Action: "*"
+            Resource: "*"
+          - Sid: "DenyUserCreationOrChange"
+            Effect: "Deny"
+            Action:
+              - "iam:CreateUser"
+              - "iam:DeleteUser"
+              - "iam:PutUserPolicy"
+              - "iam:DeleteUserPolicy"
+              - "iam:AttachUserPolicy"
+              - "iam:DetachUserPolicy"
+              - "iam:PutUserPermissionsBoundary"
+              - "iam:AddUserToGroup"
+              - "iam:RemoveUserFromGroup"
+              - "iam:UpdateUser"
+            Resource: "*"
+          - Sid: "DenyCreateOrChangeRoleWithoutBoundary"
+            Effect: "Deny"
+            Action:
+              - "iam:CreateRole"
+              - "iam:PutRolePolicy"
+              - "iam:DeleteRolePolicy"
+              - "iam:AttachRolePolicy"
+              - "iam:DetachRolePolicy"
+              - "iam:PutRolePermissionsBoundary"
+            Resource: "*"
+            Condition:
+              StringNotEquals:
+                "iam:PermissionsBoundary": !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
+          - Sid: "DenyBoundaryPolicyEdit"
+            Effect: "Deny"
+            Action:
+              - "iam:CreatePolicyVersion"
+              - "iam:DeletePolicy"
+              - "iam:DeletePolicyVersion"
+              - "iam:SetDefaultPolicyVersion"
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
+          - Sid: "DenyBoundaryDelete"
+            Effect: "Deny"
+            Action:
+              - "iam:DeleteUserPermissionsBoundary"
+              - "iam:DeleteRolePermissionsBoundary"
+            Resource: "*"
+          - Sid: "DenyCloudTrailAndConfigChange"
+            Effect: "Deny"
+            Action:
+              - "cloudtrail:DeleteTrail"
+              - "cloudtrail:PutEventSelectors"
+              - "cloudtrail:StopLogging"
+              - "cloudtrail:UpdateTrail"
+              - "config:DeleteConfigurationRecorder"
+              - "config:DeleteDeliveryChannel"
+              - "config:DeleteRetentionConfiguration"
+              - "config:PutConfigurationRecorder"
+              - "config:PutDeliveryChannel"
+              - "config:PutRetentionConfiguration"
+              - "config:StopConfigurationRecorder"
+            Resource: "*"

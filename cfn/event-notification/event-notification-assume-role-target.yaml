@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-notification-assume-role-target.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  AuditAwsAccountId:
+    AllowedPattern: "^[0-9]*$"
+    Type: "String"
+    Description: "Jump AWS Account ID"
+
+Resources:
+
+  ### teams通知のLambda関数の実行ロールからAssume Roleしてくるロール
+  AssumeRoleFromEventNotificationFuncRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      RoleName: !Sub "${AppName}---assume-role-from-event-notification-func"
+      # ManagedPolicyArns:
+      #   - "arn:aws:iam::aws:policy/AdministratorAccess"
+      # Lambdaで利用するので10分(600)程度にしたいが、
+      # ここで指定できる最小値は3600
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AuditAwsAccountId}:role/${AppName}/${AppName}---event-notification-func"
+            Action:
+              - "sts:AssumeRole"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
+
+  AssumeRoleFromEventNotificationFuncRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AppName}---assume-role-from-event-notification-func"
+      Roles:
+        - !Ref AssumeRoleFromEventNotificationFuncRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "iam:ListAccountAliases"
+              - "cloudwatch:GetMetricWidgetImage"
+            Resource: 
+              - "*"

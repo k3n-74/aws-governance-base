@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "devops-guru.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+Resources:
+
+  DevOpsGuruResourceCollection:
+    Type: AWS::DevOpsGuru::ResourceCollection
+    Properties: 
+      ResourceCollectionFilter: 
+        Tags:
+          - AppBoundaryKey: "devops-guru---guest-app"
+            TagValues: 
+            - "ENABLED"

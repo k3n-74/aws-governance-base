@@ -1,0 +1,300 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-notification.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  # EventNotificationTargetSecurityHub:
+  #   Description: ""
+  #   Type: "String"
+
+  # EventNotificationTargetDevOpsGuru:
+  #   Description: ""
+  #   Type: "String"
+
+  LambdaS3Bucket:
+    Description: "Lambda zip"
+    Type: "String"
+
+  LambdaS3Key:
+    Description: "Lambda zip"
+    Type: "String"
+
+  # 本テンプレート内で利用していないパラメータであるが、
+  # aws-gov-baseのLambda Versionの発行を停止させる機能で
+  # 前回デプロイ時のSHA256 Digestの値を取得する必要があるため存在している。
+  LambdaSha256Digest:
+    Description: "Lambda SHA256 Digest"
+    Type: "String"
+
+  NotificationEventPatternSourceList:
+    Description: "comma delimited notification event source list."
+    Type: "CommaDelimitedList"
+    Default: ""
+
+  CmkAliasName:
+    Description: "CMK Alias Name"
+    Type: "String"
+
+Resources: 
+
+  ################################
+  # EventBridge -> SNS -> Queue
+  ################################
+
+  # EventBridgeから通知イベントを拾う
+  SubscribeEventNotification:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---subscribe-event-notification"
+      EventBusName: !Sub "${AppName}---aggregated-notification-event"
+      State: "ENABLED"
+      EventPattern:
+        source: !Ref NotificationEventPatternSourceList
+        # 再生したイベントは取得しない
+        # https://aws.amazon.com/jp/blogs/compute/archiving-and-replaying-events-with-amazon-eventbridge/
+        "replay-name": 
+          - exists: false
+      Targets:
+        - Arn: !Ref EventNotificationTopic
+          Id: !Sub "${AppName}---sns-topic-for-guardduty"
+
+  DevSubscribeEventNotification:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---subscribe-event-notification--dev"
+      EventBusName: !Sub "${AppName}---aggregated-notification-event"
+      State: "ENABLED"
+      EventPattern:
+      # 全部のイベントを取得する
+        source:
+          - prefix: ""
+      Targets:
+        - Arn: !Ref DevEventNotificationTopic
+          Id: !Sub "${AppName}---sns-topic-for-guardduty--dev"
+
+  # EventBridgeからイベントを受け取るSNS
+  EventNotificationTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---event-notification"
+        Statement:
+          - Sid: "eventbridge-to-sns"
+            Effect: Allow
+            Principal: 
+              Service: "events.amazonaws.com"
+            Action: 'sns:Publish'
+            Resource: !Ref EventNotificationTopic
+      Topics:
+        - !Ref EventNotificationTopic
+
+  EventNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AppName}---event-notification"
+
+  EventNotificationSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref EventNotificationTopic
+      Endpoint: !GetAtt EventNotificationQueue.Arn
+      Protocol: "sqs"
+
+  DevEventNotificationTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---event-notification--dev"
+        Statement:
+          - Sid: "eventbridge-to-sns--dev"
+            Effect: Allow
+            Principal: 
+              Service: "events.amazonaws.com"
+            Action: 'sns:Publish'
+            Resource: !Ref DevEventNotificationTopic
+      Topics:
+        - !Ref DevEventNotificationTopic
+
+  DevEventNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AppName}---event-notification--dev"
+
+  DevEventNotificationSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref DevEventNotificationTopic
+      Endpoint: !GetAtt DevEventNotificationQueue.Arn
+      Protocol: "sqs"
+
+  # SNSからメッセージを受け取るSQS
+  EventNotificationQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref EventNotificationQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---sns-publish-to-sqs"
+        Statement:
+          - Sid:  "sns-publish-to-sqs"
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - sqs:SendMessage
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub "arn:aws:sns:*:${AWS::AccountId}:*"
+
+  EventNotificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      VisibilityTimeout: 200
+      MessageRetentionPeriod: 1209600
+
+  DevEventNotificationQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref DevEventNotificationQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !Sub "${AppName}---sns-publish-to-sqs--dev"
+        Statement:
+          - Sid:  "sns-publish-to-sqs--dev"
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - sqs:SendMessage
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub "arn:aws:sns:*:${AWS::AccountId}:*"
+
+  DevEventNotificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      VisibilityTimeout: 200
+      MessageRetentionPeriod: 1209600
+
+
+  # SQS と Lambda の紐づけ
+  EventNotificationEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref EventNotificationFuncAlias
+      EventSourceArn: !GetAtt EventNotificationQueue.Arn
+      BatchSize: 1
+      Enabled: True
+
+  DevEventNotificationEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !GetAtt EventNotificationFunc.Arn
+      EventSourceArn: !GetAtt DevEventNotificationQueue.Arn
+      BatchSize: 1
+      Enabled: True
+
+
+  ##########################
+  # Lambda Function
+  ##########################
+
+  EventNotificationFuncAlias:
+    Type: AWS::Lambda::Alias
+    Properties: 
+      Name: "prod"
+      FunctionName: !GetAtt EventNotificationFunc.Arn
+      FunctionVersion: !GetAtt EventNotificationFuncVersionREPLACEREPLACEXXXLambdaSha256DigestXXXREPLACEREPLACE.Version
+
+  # Lambda関数に変更があったときにバージョン発行するために、
+  # REPLACEREPLACEXXXLambdaSha256DigestXXXREPLACEREPLACEはデプロイ直前に文字列置換する
+  EventNotificationFuncVersionREPLACEREPLACEXXXLambdaSha256DigestXXXREPLACEREPLACE:
+    Type: AWS::Lambda::Version
+    # DeletionPolicy: Retain
+    Metadata:
+      # cfn-lintの警告を止めるためにLambdaSha256Digestを参照している。
+      LambdaSha256Digest : !Ref LambdaSha256Digest
+    Properties: 
+      FunctionName: !GetAtt EventNotificationFunc.Arn
+
+  EventNotificationFunc:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - "EventNotificationFuncLogGroup"
+    Properties:
+      FunctionName: !Sub "${AppName}---event-notification"
+      Runtime: nodejs18.x
+      Role: !GetAtt EventNotificationFuncRole.Arn
+      Handler: index.handler
+      Environment:
+        Variables:
+          "GOV_BASE__APP_NAME" : !Ref AppName
+          # "GOV_BASE__EVENT_NOTIFICATION_TARGET_SECURITY_HUB" : !Ref EventNotificationTargetSecurityHub
+          # "GOV_BASE__EVENT_NOTIFICATION_TARGET_DEVOPS_GURU" : !Ref EventNotificationTargetDevOpsGuru
+      TracingConfig:
+        Mode: Active
+      Architectures: ["arm64"]
+      MemorySize: 512
+      Timeout: 60
+      PackageType: "Zip"
+      Code:
+        S3Bucket: !Ref LambdaS3Bucket
+        S3Key: !Ref LambdaS3Key
+      Layers:
+        - "arn:aws:lambda:ap-northeast-1:980059726660:layer:AWS-AppConfig-Extension-Arm64:15"
+
+  EventNotificationFuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AppName}---event-notification"
+      RetentionInDays: 400
+      KmsKeyId: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${CmkAliasName}"
+
+  EventNotificationFuncRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}---event-notification-func"
+      Path: !Sub "/${AppName}/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "sts:AssumeRole"
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
+
+  EventNotificationFuncRolePlicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AppName}---event-notification-func"
+      Roles:
+        - !Ref EventNotificationFuncRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Resource: 
+              - "*"
+          - Effect: "Allow"
+            Action:
+              - "appconfig:StartConfigurationSession"
+              - "appconfig:GetLatestConfiguration"
+            Resource: 
+              - "*"

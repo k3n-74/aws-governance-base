@@ -1,0 +1,19 @@
+// https://code.visualstudio.com/docs/getstarted/settings#_default-settings
+{
+  "diffEditor.codeLens": false,
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "[yaml]": {
+    "editor.formatOnSave": false
+  },
+  "[yml]": {
+    "editor.formatOnSave": false
+  },
+}

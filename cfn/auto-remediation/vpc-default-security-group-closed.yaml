@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "vpc-default-security-group-closed.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  BaseRegion:
+    Description: "Base region."
+    Type: "String"
+
+Conditions:
+  IsBaseRegion: !Equals [ !Ref BaseRegion, !Ref AWS::Region ]
+
+Resources: 
+
+  VpcDefaultSecurityGroupClosed:
+    Type: "AWS::Config::ConfigRule"
+    Properties:
+      ConfigRuleName: !Sub "${AppName}---vpc-default-security-group-closed"
+      # MaximumExecutionFrequency を指定したら下記エラーになる。
+      # A maximum execution frequency for this rule is not allowed because only a change in resources triggers this managed rule.
+      # MaximumExecutionFrequency: "Twelve_Hours"
+      Scope:
+        ComplianceResourceTypes:
+          - "AWS::EC2::SecurityGroup"
+      Source:
+        Owner: "AWS"
+        SourceIdentifier: "VPC_DEFAULT_SECURITY_GROUP_CLOSED" 
+
+  VpcDefaultSecurityGroupClosedRemediationConfiguration:
+    Type: "AWS::Config::RemediationConfiguration"
+    Properties:
+      TargetType: "SSM_DOCUMENT"
+      ConfigRuleName: !Ref "VpcDefaultSecurityGroupClosed"
+      TargetId: "AWSConfigRemediation-RemoveVPCDefaultSecurityGroupRules"
+      Automatic: true
+      MaximumAutomaticAttempts: 5
+      RetryAttemptSeconds: 60
+      Parameters:
+        AutomationAssumeRole:
+          StaticValue:
+            Values:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${AppName}---remediation--remove-vpc-default-sg-rules"
+        GroupId:
+          ResourceValue:
+            Value: "RESOURCE_ID"
+
+  SsmAutomationRoleForRemediationRemoveVpcDefaultSgRules:
+    Type: "AWS::IAM::Role"
+    Condition: IsBaseRegion
+    Properties:
+      RoleName: !Sub "${AppName}---remediation--remove-vpc-default-sg-rules"
+      # Path で / 以外を指定すると下記エラーになる。
+      # Parameter \"AutomationAssumeRole\" has value \"arn:aws:iam::0123456789012:role/gov-base/gov-base---remediation--remove-vpc-default-sg-rules\" not matching \"^arn:(aws[a-zA-Z-]*)?:iam::\\d{12}:role/[\\w+=,.@-]+$\".
+      # Path: !Sub "/${AppName}/"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonSSMAutomationRole"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Action: 
+              - "sts:AssumeRole"
+            Principal: 
+              Service: 
+                - "ssm.amazonaws.com"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AppName}---permissions-boundary-for-role"
+
+  SsmAutomationRoleForRemediationRemoveVpcDefaultSgPolicy:
+    Type: "AWS::IAM::Policy"
+    Condition: IsBaseRegion
+    Properties:
+      PolicyName: !Sub "${AppName}---remediation--remove-vpc-default-sg-rules"
+      Roles:
+        - !Ref SsmAutomationRoleForRemediationRemoveVpcDefaultSgRules
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "ec2:RevokeSecurityGroupIngress"
+              - "ec2:RevokeSecurityGroupEgress"
+              - "ec2:DescribeSecurityGroups"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
+              - "iam:PassRole"
+            Resource:
+              - !GetAtt SsmAutomationRoleForRemediationRemoveVpcDefaultSgRules.Arn
+          - Effect: Allow
+            Action:
+              - "ssm:StartAutomationExecution"
+              - "ssm:GetAutomationExecution"
+            Resource:
+              - "arn:aws:ssm:::automation-definition/AWSConfigRemediation-RemoveVPCDefaultSecurityGroupRules"

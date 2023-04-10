@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "event-aggregation--event-bus.yaml"
+
+Parameters:
+
+  AppName:
+    Description: "App name."
+    Type: "String"
+    Default: "gov-base"
+
+  AllAwsAccountIds:
+    Description: "comma delimited source aws account id list."
+    Type: "CommaDelimitedList"
+    Default: ""
+
+  CmkAliasName:
+    Description: "CMK Alias Name"
+    Type: "String"
+
+Resources: 
+
+  ### Event Bus
+  AggregatedNotificationEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "${AppName}---aggregated-notification-event"
+
+  ### イベントバスがイベントルールからイベントを受け取るためのポリシー
+  EventBusPolicy:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName: !Ref AggregatedNotificationEventBus
+      StatementId: !Sub "${AppName}---put-events-from-event-rule"
+      Statement:
+        Sid: !Sub "${AppName}---put-events-from-event-rule"
+        Effect: "Allow"
+        Principal: 
+          AWS: !Ref AllAwsAccountIds
+        Action: "events:PutEvents"
+        Resource : !GetAtt AggregatedNotificationEventBus.Arn
+
+  ### イベントをCloudWatch Logsに出力 ( Audit Account だけ )
+
+  ## Log Group とリソースベースのポリシー
+  AggregatedNotificationEventLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/events/${AppName}---aggregated-notification-event"
+      RetentionInDays: 400
+      KmsKeyId: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${CmkAliasName}"
+
+  EventBridgeToNotificationEventLogGroup:
+    Type: AWS::Logs::ResourcePolicy
+    Properties:
+      PolicyName: !Sub "${AppName}---aggregated-notification-event-log" 
+      PolicyDocument: !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "events.amazonaws.com",
+                  "delivery.logs.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "${AggregatedNotificationEventLogGroup.Arn}"
+            }
+          ]
+        }
+
+  ### ログ出力するためのルール
+  # "aws.securityhub" で統合されるサービス一覧
+  # https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary
+
+  ExportNotificationEventsToLogGroup:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${AppName}---export-notification-event-to-loggroup"
+      EventBusName: !Ref AggregatedNotificationEventBus
+      State: "ENABLED"
+      EventPattern:
+        # 全てのイベントを拾うために空文字のプレフィックスを指定する
+        source:
+          - prefix: ""
+      Targets:
+        - Arn: !GetAtt AggregatedNotificationEventLogGroup.Arn
+          Id: !Sub "${AppName}---log-group"
