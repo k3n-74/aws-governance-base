@@ -38,7 +38,9 @@ ika-musume:/workspace$ poetry update cfn-lint
 
 ### 🛸 スタックの削除が辛い
 
-Terraform or CDK for Terraform に引っ越しするかな。
+インポート機能が実用的な Terraform or CDK for Terraform に引っ越しするかな。  
+でも、そうしたら今度は tfstate ファイルの管理という問題が出てくる。  
+CFn VS Terraform どっちが良いのか悩ましい。
 
 ### 🛸 Audit アカウントを監査以外の用途でも使っている
 
