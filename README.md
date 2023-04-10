@@ -59,23 +59,24 @@ aws-governance-base は以下に示す 3 種類の AWS アカウントで構成�
 
 ### 🛸 機能ごとの説明
 
+以下、セットアップ順で記載。
+
 - common  
   [./cfn/common/README.md](./cfn/common/README.md)
+
+- Account Password Policy  
+  本機能は CFn 非対応であるため AWS SDK for JS の API で設定している。  
+  全 AWS アカウントの ap-northeast-1 に対してパスワードポリシーの設定をする。  
+  [./src/feature/account-password-policy.ts](./src/feature/account-password-policy.ts)
 
 - Jump アカウント  
   [./cfn/jump/README.md](./cfn/jump/README.md)
 
-- auto-remediation  
-  [./cfn/auto-remediation/README.md](./cfn/auto-remediation/README.md)
+- guard-duty  
+  [./cfn/guard-duty/README.md](./cfn/guard-duty/README.md)
 
-- config-rule  
-  [./cfn/config-rule/README.md](./cfn/config-rule/README.md)
-
-- detective  
-  [./cfn/detective/README.md](./cfn/detective/README.md)
-
-- devops-guru  
-  [./cfn/devops-guru/README.md](./cfn/devops-guru/README.md)
+- iam-access-analyzer  
+  [./cfn/iam-access-analyzer/README.md](./cfn/iam-access-analyzer/README.md)
 
 - event-aggregation  
   [./cfn/event-aggregation/README.md](./cfn/event-aggregation/README.md)
@@ -83,11 +84,19 @@ aws-governance-base は以下に示す 3 種類の AWS アカウントで構成�
 - event-notification  
   [./cfn/event-notification/README.md](./cfn/event-notification/README.md)
 
-- guard-duty  
-  [./cfn/guard-duty/README.md](./cfn/guard-duty/README.md)
+- devops-guru  
+  [./cfn/devops-guru/README.md](./cfn/devops-guru/README.md)
 
-- iam-access-analyzer  
-  [./cfn/iam-access-analyzer/README.md](./cfn/iam-access-analyzer/README.md)
+- config-rule  
+  [./cfn/config-rule/README.md](./cfn/config-rule/README.md)
+
+- auto-remediation  
+  [./cfn/auto-remediation/README.md](./cfn/auto-remediation/README.md)
+
+- detective  
+  [./cfn/detective/README.md](./cfn/detective/README.md)
+  > **Warning**  
+  > GuardDuty をデプロイしてから 48 時間以上経過してからデプロイすること。
 
 ## 🚀 デプロイ方法
 

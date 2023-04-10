@@ -4,6 +4,7 @@
 
 ### 🛸 docker buildx プラグインが必要
 
+Lambda 関数のビルドで docker buildx の機能を利用している。  
 インストールされているかどうかは下記コマンドで確認。
 
 ```bash
