@@ -1,4 +1,4 @@
-# 開発
+# 開発に関する情報
 
 ## 🚀 開発環境
 
@@ -13,6 +13,39 @@ ika-musume:/workspace$ poetry update cfn-lint
 ```
 
 ## 🚀 ディレクトリの説明
+
+- .devcontainer  
+  DevContainer のリソースのディレクトリ。
+- .vscode  
+  vscode 設定のディレクトリ。
+- cfn  
+  CFn のリソースのディレクトリ。  
+  機能ごとにディレクトリが分かれている。
+- src
+  - index.ts  
+    `npm start` で実行されるプログラムの開始点。
+  - aws/cfn/deployer.ts  
+    `aws cloudformation deploy` コマンド相当の機能。
+  - command
+    - setup.ts
+      「構成をデプロイ」するコマンドの実装。
+    - batch-put-kms-key-policy.ts
+      「KMS の Key Policy を一括更新」するコマンドの実装。
+  - feature  
+    `setup.ts` でデプロイできる機能の実装。  
+    機能ごとにファイルが分かれている。
+
+## 🚀 ソースコードの関係
+
+ソースコードの関係を主たる部分だけ図示する。
+
+```mermaid
+flowchart TB
+    npm_start(["npm start"]) --- index_ts{"src/index.ts"}
+    index_ts ---|"構成をデプロイ"| setup_ts("src/command/setup.ts")
+    index_ts ---|"KMS の Key Policy を一括更新"| batch-put-kms-key-policy_ts("src/command/batch-put-kms-key-policy.ts")
+    setup_ts --- feature("src/feature/*")
+```
 
 ## 🚀 Lambda 関数のデプロイ
 
