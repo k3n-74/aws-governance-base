@@ -23,7 +23,7 @@ $ aws sso login --profile プロファイル名
 
 以降、それぞれについて詳細に説明する。
 
-### 🛸 構成をデプロイ
+### 🛸 構成をデプロイする場合
 
 構成をデプロイするコマンドは `npm start -- setup` 。
 
@@ -71,7 +71,7 @@ $ # デバッグ用に多くの情報を出力。
 $ npm start -- setup -c ~/foo/agb-config.yaml --feature guard-duty --aws-account-id 012345678901 --region ap-northeast-1 --debug
 ```
 
-### 🛸 KMS の Key Policy を一括更新
+### 🛸 KMS の Key Policy を一括更新する場合
 
 KMS の Key Policy を一括更新するコマンドは `npm start -- batch-put-kms-key-policy` 。
 
