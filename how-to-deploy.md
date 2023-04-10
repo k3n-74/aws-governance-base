@@ -1,18 +1,20 @@
 # デプロイ手順
 
-## 🚀 開発環境を準備する
+## 🚀 1. 開発環境を準備する
 
 [./system-requirement.md](./system-requirement.md)
 
-## 🚀 設定ファイルを作成する
+## 🚀 2. 設定ファイルを作成する
 
-## 🚀 AWS SSO でログインする
+[./configuration-file-format.md](./configuration-file-format.md)
+
+## 🚀 3. AWS SSO でログインする
 
 ```shell
 $ aws sso login --profile プロファイル名
 ```
 
-## 🚀 セットアップを実行する
+## 🚀 4. セットアップを実行する
 
 セットアップのコマンドには下記 2 種類がある。
 
@@ -82,15 +84,15 @@ KMS の Key Policy を一括更新するコマンドは `npm start -- batch-put-
   キーポリシーを定義したファイルを１つ指定する。  
   このファイルのフォーマットはポリシーを JSON 形式で定義したもの。
 
-  - `${AWS::AccountId}` は デプロイ対象の AWS Account ID に置換される。
-  - `${AWS::Region}` はデプロイ対象のリージョンに置換される。
+  - 設定ファイルに記述されている `${AWS::AccountId}` は デプロイ対象の AWS Account ID に置換される。
+  - 設定ファイルに記述されている `${AWS::Region}` はデプロイ対象のリージョンに置換される。
 
   ファイルの例
 
   ```json
   {
     "Version": "2012-10-17",
-    "Id": "key-console-policy",
+    "Id": "my-key-policy",
     "Statement": [
       {
         "Sid": "Enable IAM User Permissions",
