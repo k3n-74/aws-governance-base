@@ -2,8 +2,8 @@
 
 ## 🚀 はじめに
 
-自社の IT 部門が「AWS Config, CloudTrail, SecurityHub」をセットアップ済みの AWS アカウントを、利用部門に振り出しています。  
-そして、その AWS アカウントに対して統制基盤として足りない構成を追加する役割が aws-governance-base (本プログラム) です。
+自社の IT 部門が「AWS Config, CloudTrail, SecurityHub」をセットアップ済みの AWS アカウントを、利用部門に振り出している。  
+そして、その AWS アカウントに対して統制基盤として足りない構成を追加する役割が aws-governance-base (本プログラム) である。
 
 ```mermaid
 flowchart TB
@@ -34,7 +34,7 @@ flowchart TB
 
 ## 🚀 設計方針
 
-「実現したいこと」を達成するために以下に示す設計方針にしました。
+「実現したいこと」を達成するために以下に示す設計方針にした。
 
 - マルチアカウント構成
 - Guest App を開発・運用する環境には aws-governance-base のためのリソースを極力作成しない。  
@@ -44,7 +44,7 @@ flowchart TB
 
 ### 🛸 AWS アカウント構成
 
-aws-governance-base は以下に示す 3 種類の AWS アカウントで構成された環境を作成します。
+aws-governance-base は以下に示す 3 種類の AWS アカウントで構成された環境を作成する。
 
 - Jump アカウント  
    IAM User がログインする AWS アカウントです。  
