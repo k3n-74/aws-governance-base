@@ -2,7 +2,7 @@ FROM debian:11.3
 
 # nointeractiveは問題に気づきにくくなるので推奨されていないらしい。
 # なので、本当はtextを指定したほうが良い。
-ENV DEBIAN_FRONTEND=noninteractive
+# ENV DEBIAN_FRONTEND=noninteractive
 
 # WORKDIRに指定するパス
 ARG WORKDIR_PATH=/tmp/workdir-for-docker-build
@@ -51,7 +51,7 @@ RUN set -xeu \
     && useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} \
     # Add sudo support. Omit if you don't need to install software after connecting.
     && apt-get update \
-    && apt-get install -y sudo locales \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y sudo locales \
     && apt-get clean \
     && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
     && chmod 0440 /etc/sudoers.d/${USERNAME} \
@@ -94,7 +94,7 @@ USER ${USERNAME}
 
 RUN set -xeu \
     && sudo apt-get update \
-    && sudo apt-get -y install zlib1g-dev libssl-dev libffi-dev \
+    && DEBIAN_FRONTEND=noninteractive sudo -E apt-get -y install zlib1g-dev libssl-dev libffi-dev \
       libreadline-dev libsqlite3-dev libbz2-dev \
       libncurses5-dev libgdbm-dev liblzma-dev \
       tk-dev git vim nano wget curl \
@@ -160,7 +160,7 @@ RUN set -xeu \
 
 # RUN set -xeu \
 #     && sudo apt-get update \
-#     && sudo apt-get -y install openjdk-11-jdk \
+#     && DEBIAN_FRONTEND=noninteractive sudo -E apt-get -y install openjdk-11-jdk \
 #     && sudo apt-get clean
 
 
@@ -173,7 +173,7 @@ RUN set -xeu \
 WORKDIR $WORKDIR_PATH
 RUN set -xeu \
     && sudo apt-get update \
-    && sudo apt-get -y install \
+    && DEBIAN_FRONTEND=noninteractive sudo -E apt-get -y install \
         ca-certificates \
         curl \
         gnupg \
@@ -189,7 +189,7 @@ RUN set -xeu \
     # TODO: バージョン指定でインストールするように変更する
     && sudo apt-get update \
     #  sudo apt-get install -y docker-ce-cli=<VERSION_STRING>
-    && sudo apt-get install -y docker-ce-cli docker-compose-plugin \
+    && DEBIAN_FRONTEND=noninteractive sudo -E apt-get install -y docker-ce-cli docker-compose-plugin \
     # ゴミ掃除
     && sudo rm -rf $WORKDIR_PATH
 
@@ -325,8 +325,8 @@ RUN set -xeu \
 
 RUN set -xeu \
   && sudo apt-get update \
-  && sudo apt-get -y install peco uuid-runtime default-mysql-client \
-  && sudo apt-get -y upgrade bash-completion \
+  && DEBIAN_FRONTEND=noninteractive sudo -E apt-get -y install peco uuid-runtime default-mysql-client \
+  && DEBIAN_FRONTEND=noninteractive sudo -E apt-get -y upgrade bash-completion \
   && sudo apt-get clean
 
 
@@ -402,6 +402,6 @@ RUN set -xeu \
 # EXPOSE 3000 3001 3002 3120 3500 3501 8000
 
 # 最後にDEBIAN_FRONTENDを元に戻しておく。
-ENV DEBIAN_FRONTEND=dialog
+# ENV DEBIAN_FRONTEND=dialog
 
 ENTRYPOINT [ "/bin/bash" ]
